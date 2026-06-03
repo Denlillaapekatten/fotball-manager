@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fotball Manager — Karriere</title>
+<style>
+  :root{--bg:#0b3d2e;--bg2:#0e4a37;--panel:#10261d;--line:#1c4d3a;--text:#eaf5ee;
+    --muted:#9fc4b2;--gold:#f4c542;--accent:#3ddc84;--bad:#ff6b6b;--blue:#7fb0ff;--orange:#ffae57}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;
+    background:radial-gradient(circle at 50% -10%,var(--bg2),var(--bg) 60%);color:var(--text);min-height:100vh}
+  .wrap{max-width:960px;margin:0 auto;padding:16px 16px 60px}
+  h1{font-size:28px;margin:6px 0 2px}
+  .sub{color:var(--muted);margin:0 0 14px;font-size:14px}
+  h2{font-size:19px;margin:16px 0 10px;border-left:4px solid var(--accent);padding-left:10px}
+  h3{font-size:15px;margin:0 0 8px;color:var(--muted)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 6px 24px #0006}
+  button{background:var(--accent);color:#06301d;border:none;border-radius:10px;padding:9px 15px;font-size:14px;font-weight:700;cursor:pointer;transition:.12s}
+  button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  button.sec{background:#1d4d3a;color:var(--text);border:1px solid var(--line)}
+  button.gold{background:var(--gold);color:#3a2c00}
+  button.tiny{padding:4px 9px;font-size:12px;border-radius:7px}
+  button.red{background:#5a2222;color:#ffd0d0;border:1px solid #7a3333}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .between{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
+  select{background:#0c2419;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;width:100%}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:6px 8px;text-align:left}
+  th{color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  tbody tr{border-bottom:1px solid #ffffff0d}
+  tbody tr.me{background:#3ddc8418}
+  td.c,th.c{text-align:center}
+  .pill{display:inline-block;padding:1px 7px;border-radius:20px;font-size:11px;font-weight:700;min-width:30px;text-align:center}
+  .pill.gk{background:#b8860b40;color:#f4c542}.pill.df{background:#2f6dd040;color:#7fb0ff}
+  .pill.mf{background:#2bb35540;color:#7fffb0}.pill.fw{background:#d0432f40;color:#ff9a8a}
+  .ovr{font-weight:800}
+  .teamlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+  .teamcard{background:#0c2419;border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;transition:.12s}
+  .teamcard:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .teamcard.sel{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
+  .crest{font-size:24px}.star{color:var(--gold)}
+  .ratebar{height:6px;background:#0c2419;border-radius:4px;overflow:hidden;margin-top:6px}
+  .ratebar>i{display:block;height:100%;background:linear-gradient(90deg,#3ddc84,#179043)}
+  .stat{background:#0c2419;border:1px solid var(--line);border-radius:10px;padding:10px 12px;flex:1;min-width:120px}
+  .stat .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .stat .v{font-size:20px;font-weight:800;margin-top:2px}
+  .stat .v.good{color:var(--accent)}.stat .v.gold{color:var(--gold)}.stat .v.blue{color:var(--blue)}
+  .nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .scoreboard{display:flex;align-items:center;justify-content:center;gap:16px;font-size:22px;font-weight:800;padding:8px 0}
+  .sb-team{flex:1;text-align:center}.sb-team.h{text-align:right}
+  .sb-score{background:#06301d;border-radius:10px;padding:6px 16px;min-width:96px;text-align:center;font-variant-numeric:tabular-nums}
+  .clock{text-align:center;color:var(--gold);font-weight:700;letter-spacing:1px;margin:4px 0 10px}
+  .commentary{background:#0c2419;border:1px solid var(--line);border-radius:10px;height:280px;overflow-y:auto;padding:10px 12px;font-size:14px;line-height:1.55}
+  .ev{margin:3px 0;padding:3px 8px;border-radius:6px;animation:fade .3s}
+  .ev.goal{background:#3ddc8422;font-weight:700;color:var(--accent)}
+  .ev.chance{color:#ffe08a}.ev.big{color:#fff}.ev.sys{color:var(--muted);font-style:italic}
+  .ev.inj{color:var(--orange)}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+  .fixtures{display:grid;gap:6px}
+  .fx{display:flex;align-items:center;gap:8px;background:#0c2419;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:14px}
+  .fx .t{flex:1}.fx .t.h{text-align:right}
+  .fx .res{background:#06301d;border-radius:6px;padding:3px 10px;font-weight:700;min-width:54px;text-align:center}
+  .fx.userfx{border-color:var(--gold)}
+  .tag{font-size:11px;background:var(--gold);color:#3a2c00;padding:1px 7px;border-radius:10px;font-weight:700}
+  .muted{color:var(--muted)}.center{text-align:center}
+  .big-num{font-size:34px;font-weight:800;color:var(--gold)}
+  .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .tabs button{background:#1d4d3a;color:var(--text);border:1px solid var(--line)}
+  .tabs button.on{background:var(--accent);color:#06301d}
+  .scroll{overflow-x:auto}
+  .note{background:#0c2419;border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:8px;padding:10px 12px;font-size:13.5px;margin:8px 0}
+  .ageY{color:var(--accent)}.ageO{color:var(--bad)}
+  .formup{color:var(--accent)}.formdn{color:var(--bad)}
+  .inj{color:var(--orange);font-weight:700}
+  .promo{border-left:3px solid var(--accent)}.releg{border-left:3px solid var(--bad)}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:20px}
+  .warn{color:var(--bad);font-weight:700}.ok{color:var(--accent);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚽ Fotball Manager <span style="color:var(--gold)">Karriere</span></h1>
+  <p class="sub" id="subline">5 land · ekte spillere &amp; trenere · europacupene</p>
+  <div id="app"></div>
+  <footer>Karrieremodus v6.0 · Kalender &amp; energi · 5 land · Europacupene · Trenere · Landslag · Akademi · Ratinger er omtrentlige</footer>
+</div>
+<script>
+"use strict";
+
+/* ===================== COUNTRIES & CLUBS ===================== */
+const DIV_NAMES=["1. divisjon (topp)","2. divisjon","3. divisjon"];
+const BASE_TEMPLATE=[84,82,80,78,77,76,75,74,70,68,67,66,64,63,62,60,58,56,55,54,52,51,50,48];
+const NORWAY_CLUBS=[
+ {name:"Nordlys FK",crest:"🐺"},{name:"Fjord United",crest:"⚓"},{name:"Storm BK",crest:"⚡"},{name:"Vidde IL",crest:"🦌"},
+ {name:"Havørn SK",crest:"🦅"},{name:"Bre FK",crest:"🏔️"},{name:"Kongsvik FK",crest:"👑"},{name:"Saga BK",crest:"📜"},
+ {name:"Tundra IF",crest:"❄️"},{name:"Myra BK",crest:"🐸"},{name:"Granitt FK",crest:"🪨"},{name:"Elv SK",crest:"🌊"},
+ {name:"Skog IL",crest:"🌲"},{name:"Vind FK",crest:"🌬️"},{name:"Stein BK",crest:"🗿"},{name:"Foss United",crest:"💧"},
+ {name:"Aurora FK",crest:"🌌"},{name:"Tind IL",crest:"⛰️"},{name:"Våg BK",crest:"🛶"},{name:"Heia FK",crest:"📣"},
+ {name:"Lyng SK",crest:"🌾"},{name:"Klippe FK",crest:"🧗"},{name:"Dal IL",crest:"🏞️"},{name:"Holme BK",crest:"🏝️"},
+];
+const COUNTRY_DEFS=[
+ {name:"Norge",flag:"🇳🇴",prestige:0,clubs:NORWAY_CLUBS},
+ {name:"England",flag:"🏴",prestige:8,suffixes:["FC","United","City","Town","Rovers","Albion"],
+  cities:["London","Manchester","Liverpool","Leeds","Newcastle","Sheffield","Bristol","Nottingham","Brighton","Sunderland","Birmingham","Wolverton","Southport","Norwich","Hull","Derby","Coventry","Portsea","Blackmoor","Bolton","Ipswich","Reading","Watford","Burnley"]},
+ {name:"Spania",flag:"🇪🇸",prestige:7,suffixes:["CF","CD","UD"],
+  cities:["Madrid","Barcelona","Sevilla","Valencia","Bilbao","Vigo","Málaga","Zaragoza","Granada","Cádiz","Toledo","Córdoba","Murcia","Valladolid","Pamplona","Salamanca","Burgos","León","Oviedo","Santander","Logroño","Albacete","Tarragona","Gijón"]},
+ {name:"Tyskland",flag:"🇩🇪",prestige:6,suffixes:["FC","SV","BV","09"],
+  cities:["München","Dortmund","Leipzig","Berlin","Frankfurt","Stuttgart","Bremen","Köln","Hamburg","Hannover","Nürnberg","Augsburg","Bochum","Freiburg","Mainz","Düsseldorf","Dresden","Kiel","Aachen","Rostock","Erfurt","Jena","Trier","Ulm"]},
+ {name:"Italia",flag:"🇮🇹",prestige:5,suffixes:["Calcio","FC","1908"],
+  cities:["Milano","Roma","Torino","Napoli","Firenze","Bologna","Genova","Verona","Bergamo","Udine","Cagliari","Lecce","Parma","Empoli","Como","Venezia","Salerno","Modena","Cremona","Frosinone","Pisa","Bari","Padova","Brescia"]},
+];
+
+/* ===================== REAL PLAYERS [name,pos,rating,age] ===================== */
+const REAL_PLAYERS=[
+ ["Thibaut Courtois","GK",90,33],["Alisson","GK",89,33],["Gianluigi Donnarumma","GK",88,27],
+ ["Marc-André ter Stegen","GK",88,33],["Ederson","GK",87,32],["Jan Oblak","GK",87,33],
+ ["Mike Maignan","GK",87,30],["Emiliano Martínez","GK",85,33],["David Raya","GK",85,30],
+ ["Gregor Kobel","GK",85,28],["Diogo Costa","GK",84,26],["André Onana","GK",83,29],
+ ["Jordan Pickford","GK",83,31],["Guglielmo Vicario","GK",83,29],["Giorgi Mamardashvili","GK",82,25],
+ ["Bart Verbruggen","GK",80,23],["Nick Pope","GK",80,33],["Robert Sánchez","GK",80,28],
+ ["Virgil van Dijk","DF",89,34],["Rúben Dias","DF",88,28],["William Saliba","DF",87,24],
+ ["Antonio Rüdiger","DF",87,32],["Marquinhos","DF",87,31],["Alessandro Bastoni","DF",86,26],
+ ["Achraf Hakimi","DF",86,27],["Cristian Romero","DF",86,27],["Gabriel Magalhães","DF",86,28],
+ ["Trent Alexander-Arnold","DF",86,27],["Éder Militão","DF",85,28],["Josko Gvardiol","DF",85,24],
+ ["Ronald Araújo","DF",85,26],["Jules Koundé","DF",85,27],["Theo Hernández","DF",85,28],
+ ["Alphonso Davies","DF",84,25],["João Cancelo","DF",84,31],["Matthijs de Ligt","DF",84,26],
+ ["Dayot Upamecano","DF",84,27],["Kim Min-jae","DF",84,29],["Andrew Robertson","DF",84,31],
+ ["Reece James","DF",84,26],["Nuno Mendes","DF",84,23],["Kyle Walker","DF",82,35],
+ ["Benjamin Pavard","DF",82,29],["Pau Cubarsí","DF",82,18],["Jeremie Frimpong","DF",82,25],
+ ["Lisandro Martínez","DF",83,28],["Micky van de Ven","DF",83,24],["Levi Colwill","DF",81,23],
+ ["Riccardo Calafiori","DF",81,23],["Destiny Udogie","DF",81,23],["Lutsharel Geertruida","DF",79,25],
+ ["Rodri","MF",91,29],["Jude Bellingham","MF",90,22],["Federico Valverde","MF",89,27],
+ ["Kevin De Bruyne","MF",88,34],["Pedri","MF",88,23],["Florian Wirtz","MF",88,22],
+ ["Jamal Musiala","MF",88,22],["Martin Ødegaard","MF",87,27],["Declan Rice","MF",87,27],
+ ["Bruno Fernandes","MF",87,31],["Bernardo Silva","MF",87,31],["Nicolò Barella","MF",87,28],
+ ["Frenkie de Jong","MF",87,28],["Joshua Kimmich","MF",87,30],["Aurélien Tchouaméni","MF",85,26],
+ ["Eduardo Camavinga","MF",85,23],["Alexis Mac Allister","MF",85,27],["Enzo Fernández","MF",84,25],
+ ["Moisés Caicedo","MF",84,24],["Gavi","MF",84,21],["Ilkay Gündogan","MF",84,35],
+ ["Dominik Szoboszlai","MF",84,25],["Sandro Tonali","MF",84,25],["Granit Xhaka","MF",83,33],
+ ["Ryan Gravenberch","MF",83,23],["James Maddison","MF",83,29],["Teun Koopmeiners","MF",83,28],
+ ["Scott McTominay","MF",81,29],["Conor Gallagher","MF",80,25],
+ ["Mason Mount","MF",80,27],["Morgan Gibbs-White","MF",80,25],["Kobbie Mainoo","MF",80,20],
+ ["Warren Zaïre-Emery","MF",80,19],["Adam Wharton","MF",78,21],
+ ["Erling Haaland","FW",91,25],["Kylian Mbappé","FW",91,27],["Vinícius Júnior","FW",90,25],
+ ["Harry Kane","FW",89,32],["Mohamed Salah","FW",89,33],["Lautaro Martínez","FW",88,28],
+ ["Robert Lewandowski","FW",87,37],["Ousmane Dembélé","FW",87,28],["Victor Osimhen","FW",87,27],
+ ["Bukayo Saka","FW",87,24],["Phil Foden","FW",86,25],["Khvicha Kvaratskhelia","FW",86,25],
+ ["Lamine Yamal","FW",86,18],["Cole Palmer","FW",86,23],["Rafael Leão","FW",86,26],
+ ["Julián Álvarez","FW",86,26],["Alexander Isak","FW",86,26],["Antoine Griezmann","FW",86,34],
+ ["Dušan Vlahović","FW",84,26],["Romelu Lukaku","FW",84,32],
+ ["Ademola Lookman","FW",83,28],["Serhou Guirassy","FW",83,29],["Gabriel Jesus","FW",82,28],
+ ["Darwin Núñez","FW",82,26],["Benjamin Šeško","FW",82,22],["Randal Kolo Muani","FW",82,27],
+ ["Memphis Depay","FW",81,31],["Nicolas Jackson","FW",80,24],["João Pedro","FW",80,24],
+ ["Dominic Solanke","FW",80,28],["Hugo Ekitike","FW",80,23],["Olivier Giroud","FW",79,39],
+ ["Evan Ferguson","FW",77,21],["Mathys Tel","FW",76,20],
+ /* spesielt plassert på Fjord United */
+ ["Marcus Rashford","FW",84,28],["Youri Tielemans","MF",82,28],["Axel Tuanzebe","DF",72,28],
+];
+const FJORD_PLAYERS=["Marcus Rashford","Youri Tielemans","Axel Tuanzebe"];
+
+/* ===================== REAL MANAGERS [name,rating] ===================== */
+const REAL_MANAGERS=[
+ ["Pep Guardiola",95],["Carlo Ancelotti",93],["Jürgen Klopp",92],["Xabi Alonso",90],["Luis Enrique",90],
+ ["Thomas Tuchel",88],["Mikel Arteta",88],["Diego Simeone",88],["Hansi Flick",88],["Arne Slot",87],
+ ["Antonio Conte",87],["Simone Inzaghi",86],["Unai Emery",85],["Julian Nagelsmann",85],["José Mourinho",84],
+ ["Rúben Amorim",84],["Gian Piero Gasperini",84],["Roberto De Zerbi",83],["Eddie Howe",83],["Massimiliano Allegri",83],
+ ["Mauricio Pochettino",82],["Andoni Iraola",82],["Oliver Glasner",82],["Xavi",82],["Enzo Maresca",81],
+ ["Erik ten Hag",81],["Thiago Motta",80],["Vincent Kompany",80],["Ange Postecoglou",80],["Michel",80],
+ ["Marco Rose",79],["Nuno Espírito Santo",78],["Marco Silva",78],["Cesc Fàbregas",78],["Igor Tudor",78],
+ ["Kasper Hjulmand",78],["Paulo Fonseca",77],["Francesco Farioli",77],["Graham Potter",76],["Sébastien Pocognoli",72],
+];
+
+/* ===================== TACTICS ===================== */
+const FORMATIONS={
+ "4-4-2":{DF:4,MF:4,FW:2,atk:0,def:0},"4-3-3":{DF:4,MF:3,FW:3,atk:6,def:-3},
+ "3-5-2":{DF:3,MF:5,FW:2,atk:3,def:-2},"5-3-2":{DF:5,MF:3,FW:2,atk:-4,def:7},
+ "4-5-1":{DF:4,MF:5,FW:1,atk:-3,def:5},
+};
+const MENTALITY={"Defensiv":{atk:-8,def:8,risk:.8},"Balansert":{atk:0,def:0,risk:1},"Offensiv":{atk:10,def:-8,risk:1.25}};
+const PRIZE=[22e6,14e6,9e6,6e6,4e6,3e6,2.2e6,1.6e6];
+const COMPS={cup:{name:"cupen",icon:"🏆",prize:8e6},cl:{name:"Champions League",icon:"⭐",prize:30e6},
+ el:{name:"Europa League",icon:"🥈",prize:14e6},conf:{name:"Conference League",icon:"🥉",prize:7e6}};
+const NATIONS=[
+ {name:"Norvania",flag:"🟥"},{name:"Sølvland",flag:"⬜"},{name:"Bjørkrike",flag:"🟩"},
+ {name:"Vestmark",flag:"🟦"},{name:"Østhavet",flag:"🟨"},{name:"Fjellheim",flag:"🟫"},
+ {name:"Gullkyst",flag:"🟧"},{name:"Nordstrand",flag:"🟪"},
+];
+const SAVE_KEY="fm_career_v6";
+
+/* ===================== HELPERS ===================== */
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const rint=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const el=id=>document.getElementById(id);
+let PID=1;
+function fmt(n){n=Math.round(n);
+ if(Math.abs(n)>=1e6)return (n/1e6).toFixed(1).replace(".",",")+" M";
+ if(Math.abs(n)>=1e3)return Math.round(n/1e3)+" k";return ""+n;}
+const kr=n=>"kr "+fmt(n);
+const isUser=id=>id===G.userTeam;
+function energyMult(p){const e=p.energy==null?100:p.energy;return e>=80?1:e>=65?.96:e>=50?.9:e>=35?.82:.72;}
+const eff=p=>clamp(Math.round((p.rating+(p.form||0))*energyMult(p)),25,99);
+const fit=p=>!p.injury||p.injury<=0;
+function playerValue(p){
+ const rf=Math.pow(Math.max(p.rating-40,1),2.2);
+ const af=p.age<=21?1.45:p.age<=25?1.3:p.age<=28?1.05:p.age<=31?.7:p.age<=34?.4:.2;
+ const pf=1+Math.max(p.potential-p.rating,0)*0.03;
+ return Math.round(rf*af*pf*1000/1e4)*1e4;}
+const wageFor=v=>Math.round(v*0.0022/100)*100;
+function potFor(rating,age){
+ if(age<=20)return clamp(rating+rint(3,12),rating,99);
+ if(age<=23)return clamp(rating+rint(1,6),rating,99);
+ if(age<=26)return clamp(rating+rint(0,3),rating,99);
+ return rating;}
+const FIRST=["Adrian","Bjørn","Casper","Daniel","Even","Filip","Henrik","Ivar","Jonas","Lars","Magnus","Nils","Oskar","Petter","Sander","Tobias","Vegard","William","Aksel","Mathias","Emil","Noah","Elias","Markus","Leon","Theo","Marco","Luca","Pablo","Diego","Max","Felix"];
+const LAST=["Berg","Dahl","Eide","Foss","Haugen","Iversen","Johansen","Lie","Moen","Nilsen","Olsen","Ruud","Strand","Vik","Aas","Bakke","Solberg","Hansen","Larsen","Holm","Smith","Brown","Walsh","García","López","Rossi","Conti","Müller","Wagner","Dubois","Silva","Costa"];
+function makePlayer(pos,baseStr){
+ const age=rint(17,34),v=pos==="GK"?6:9;
+ const rating=clamp(Math.round(baseStr+rnd(-v,v)),38,94);
+ const p={id:PID++,name:`${pick(FIRST)} ${pick(LAST)}`,pos,age,rating,potential:potFor(rating,age),
+   contract:rint(1,4),form:0,injury:0,goals:0,energy:100,inXI:false};
+ p.value=playerValue(p);p.wage=wageFor(p.value);return p;}
+function makeRealPlayer(e){
+ const p={id:PID++,name:e[0],pos:e[1],rating:e[2],age:e[3],potential:potFor(e[2],e[3]),
+   contract:rint(2,4),form:0,injury:0,goals:0,energy:100,real:true,inXI:false};
+ p.value=playerValue(p);p.wage=wageFor(p.value);return p;}
+function makeFreeAgent(){
+ const pos=pick(["GK","DF","DF","MF","MF","FW"]);
+ const p=makePlayer(pos,rint(48,68));p.contract=0;p.age=clamp(p.age,19,35);
+ p.value=playerValue(p);p.wage=wageFor(p.value);return p;}
+
+/* ----- XI ----- */
+function bestXI(squad,formation){
+ const f=FORMATIONS[formation];
+ const s=pos=>squad.filter(p=>p.pos===pos&&fit(p)).sort((a,b)=>eff(b)-eff(a));
+ return [...s("GK").slice(0,1),...s("DF").slice(0,f.DF),...s("MF").slice(0,f.MF),...s("FW").slice(0,f.FW)];}
+function xiValid(team){
+ const f=FORMATIONS[team.formation],sel=team.squad.filter(p=>p.inXI&&fit(p));
+ const c=t=>sel.filter(p=>p.pos===t).length;
+ return sel.length===11&&c("GK")===1&&c("DF")===f.DF&&c("MF")===f.MF&&c("FW")===f.FW;}
+function activeXI(team){
+ if(team.isUser&&xiValid(team))return team.squad.filter(p=>p.inXI&&fit(p));
+ const xi=bestXI(team.squad,team.formation),ids=new Set(xi.map(p=>p.id));
+ team.squad.forEach(p=>p.inXI=ids.has(p.id));return xi;}
+function autoPickXI(team){const xi=bestXI(team.squad,team.formation),ids=new Set(xi.map(p=>p.id));
+ team.squad.forEach(p=>p.inXI=ids.has(p.id));}
+const wageTotal=team=>team.squad.reduce((s,p)=>s+p.wage,0);
+const squadAvg=team=>{const x=bestXI(team.squad,"4-4-2");return x.length?Math.round(x.reduce((s,p)=>s+p.rating,0)/x.length):50;};
+
+/* ===================== STATE / GENERATION ===================== */
+let G=null;
+function countryClubDefs(ci){const cd=COUNTRY_DEFS[ci];
+ if(cd.clubs)return cd.clubs.map((c,i)=>({name:c.name,crest:c.crest,base:BASE_TEMPLATE[i]+(cd.prestige||0)}));
+ return cd.cities.slice(0,24).map((city,i)=>({name:city+" "+cd.suffixes[i%cd.suffixes.length],crest:cd.flag,base:BASE_TEMPLATE[i]+(cd.prestige||0)}));}
+function previewClubs(ci){return countryClubDefs(ci).map((c,i)=>({id:ci*24+i,name:c.name,crest:c.crest,base:c.base,div:i<8?0:i<16?1:2}));}
+function mkClub(id,name,crest,base,country,div){return {id,name,crest,base,country,div,squad:[],
+ formation:"4-4-2",mentality:"Balansert",isUser:false,manager:null,pts:0,w:0,d:0,l:0,gf:0,ga:0};}
+function generateClubs(){const all=[];let id=0;
+ COUNTRY_DEFS.forEach((cd,ci)=>{countryClubDefs(ci).forEach((c,i)=>{all.push(mkClub(id++,c.name,c.crest,c.base,ci,i<8?0:i<16?1:2));});});
+ return all;}
+function buildAllSquads(teams){
+ const fjord=teams.find(t=>t.name==="Fjord United");
+ const byPos={GK:[],DF:[],MF:[],FW:[]};
+ REAL_PLAYERS.forEach(e=>byPos[e[1]].push(e));
+ FJORD_PLAYERS.forEach(nm=>{for(const pos in byPos){const idx=byPos[pos].findIndex(e=>e[0]===nm);
+   if(idx>=0){const e=byPos[pos].splice(idx,1)[0];const p=makeRealPlayer(e);p.contract=rint(3,5);fjord.squad.push(p);break;}}});
+ Object.values(byPos).forEach(a=>a.sort((x,y)=>y[2]-x[2]));
+ const ordered=[...teams].sort((a,b)=>b.base-a.base);
+ const comp={GK:2,DF:7,MF:6,FW:5},idx={GK:0,DF:0,MF:0,FW:0};
+ for(const pos of ["GK","DF","MF","FW"]){
+  for(let slot=0;slot<comp[pos];slot++){
+   for(const team of ordered){
+    if(team.squad.filter(p=>p.pos===pos).length>=comp[pos])continue;
+    let p;
+    if(idx[pos]<byPos[pos].length)p=makeRealPlayer(byPos[pos][idx[pos]++]);
+    else p=makePlayer(pos,clamp(team.base+rint(-7,5),38,90));
+    team.squad.push(p);
+   }}}
+}
+function assignManagers(teams,userIdx){
+ const ai=teams.filter(t=>t.id!==userIdx).sort((a,b)=>b.base-a.base);
+ const mans=[...REAL_MANAGERS].sort((a,b)=>b[1]-a[1]);
+ ai.forEach((t,i)=>{if(i<mans.length)t.manager={name:mans[i][0],rating:mans[i][1]};
+   else t.manager={name:pick(FIRST)+" "+pick(LAST),rating:rint(58,76)};});
+ teams[userIdx].manager={name:"Deg",rating:80};}
+function newCareer(teamIdx){
+ PID=1;
+ const teams=generateClubs();
+ teams[teamIdx].isUser=true;
+ buildAllSquads(teams);
+ teams.forEach(t=>{t.budget=Math.round((t.base-44)*500000);t.wageBudget=Math.round(wageTotal(t)*1.5/1e4)*1e4;autoPickXI(t);});
+ G={season:1,teams,userTeam:teamIdx,userCountry:teams[teamIdx].country,round:0,
+    fixtures:buildLeagues(teams),news:[],lastRanks:null};
+ assignManagers(teams,teamIdx);
+ setObjective();
+ G.freeAgents=Array.from({length:14},makeFreeAgent);
+ G.academy={level:1,prospects:[]};generateYouthIntake();
+ G.nations=buildNations();G.natCup=buildNatCup();G.userNation=null;
+ G.comps=buildComps();
+ G.day=1;G.schedule=buildSchedule();G.eventIdx=0;
+ save();
+}
+const MONTHS=["aug.","sep.","okt.","nov.","des.","jan.","feb.","mar.","apr.","mai","jun."];
+function dateStr(day){const dd=((day-1)%30)+1,mi=Math.floor((day-1)/30)%MONTHS.length;return dd+". "+MONTHS[mi];}
+function buildSchedule(){
+ const ev=[];
+ for(let r=0;r<ROUNDS_PER_SEASON;r++)ev.push({day:(r+1)*7,type:'league',round:r});
+ [2,5,8,11,14].forEach(w=>ev.push({day:w*7-3,type:'cup'}));
+ [4,7,10].forEach(w=>ev.push({day:w*7-3,type:'euro'}));
+ ev.sort((a,b)=>a.day-b.day);
+ return ev;}
+function buildLeagues(teams){const fx={};
+ COUNTRY_DEFS.forEach((cd,ci)=>{fx[ci]={};
+  for(let d=0;d<3;d++){const ids=teams.filter(t=>t.country===ci&&t.div===d).map(t=>t.id);fx[ci][d]=makeFixtures(ids);}});
+ return fx;}
+function makeFixtures(ids){
+ const n=ids.length,arr=[...Array(n).keys()],rounds=[];
+ for(let r=0;r<n-1;r++){const g=[];
+  for(let i=0;i<n/2;i++){const h=arr[i],a=arr[n-1-i];g.push(r%2===0?[h,a]:[a,h]);}
+  rounds.push(g);arr.splice(1,0,arr.pop());}
+ const second=rounds.map(rd=>rd.map(([h,a])=>[a,h]));
+ return [...rounds,...second].map(g=>g.map(([h,a])=>({h:ids[h],a:ids[a],played:false,hs:0,as:0})));}
+const userTeam=()=>G.teams[G.userTeam];
+const userCountryName=()=>COUNTRY_DEFS[userTeam().country].name;
+const ROUNDS_PER_SEASON=14;
+
+function setObjective(){
+ const t=userTeam(),ci=t.country,div=t.div;
+ const expected=standings(ci,div).filter(x=>squadAvg(x)>squadAvg(t)).length+1;
+ let target,text;
+ if(div>0){if(expected<=3){target=2;text="Rykk opp! Sikre topp 2.";}else{target=6;text="Etablér laget — unngå nedrykk (ikke bunn 2).";}}
+ else{if(expected<=1){target=1;text="Vinn serien!";}
+  else if(expected<=3){target=3;text="Kjemp om medalje — topp 3.";}
+  else if(expected<=6){target=expected;text=`Sikre topp ${expected}.`;}
+  else{target=6;text="Unngå nedrykk fra toppdivisjonen.";}}
+ G.objective={target,text};}
+
+/* ===================== MATCH ENGINE ===================== */
+function managerBonus(team){return team.manager?clamp((team.manager.rating-78)*0.15,-3,4):0;}
+function strength(team){
+ const xi=activeXI(team),f=FORMATIONS[team.formation],m=MENTALITY[team.mentality];
+ const avg=a=>a.length?a.reduce((s,p)=>s+eff(p),0)/a.length:48;
+ const gk=avg(xi.filter(p=>p.pos==="GK")),df=avg(xi.filter(p=>p.pos==="DF")),
+   mf=avg(xi.filter(p=>p.pos==="MF")),fw=avg(xi.filter(p=>p.pos==="FW"));
+ const mb=managerBonus(team);
+ return{attack:fw*.6+mf*.4+f.atk+m.atk+mb,defense:df*.6+gk*.4+f.def+m.def+mb,risk:m.risk,xi};}
+function simulate(home,away){
+ const H=strength(home),A=strength(away),events=[];let hs=0,as=0;const ha=4;
+ for(let min=1;min<=90;min++){
+  if(Math.random()<0.10){
+   const hP=(H.attack+ha)*H.risk,aP=A.attack*A.risk,tot=hP+aP,hm=Math.random()<hP/tot;
+   const atkT=hm?home:away,defT=hm?away:home,aS=hm?H:A,dS=hm?A:H;
+   const sc=pick(aS.xi.filter(p=>p.pos!=="GK"))||aS.xi[0];if(!sc)continue;
+   const q=(aS.attack+eff(sc))/2+(hm?ha:0),conv=clamp(.30+(q-dS.defense)/120,.05,.62);
+   if(Math.random()<conv){if(hm)hs++;else as++;sc.goals=(sc.goals||0)+1;
+    events.push({min,type:"goal",home:hm,text:`⚽ MÅL! ${sc.name} scorer for ${atkT.name}!`});}
+   else events.push({min,type:"chance",home:hm,text:"🎯 "+pick([
+    `${sc.name} skyter like utenfor!`,`Stor sjanse — ${defT.name}s keeper redder!`,
+    `${sc.name} alene med keeper... reddet!`,`${sc.name} treffer stolpen!`,
+    `Frispark til ${atkT.name} — over mål.`])});
+  }}
+ return{hs,as,events};}
+function applyResult(fx,hs,as){
+ fx.played=true;fx.hs=hs;fx.as=as;
+ const h=G.teams[fx.h],a=G.teams[fx.a];
+ h.gf+=hs;h.ga+=as;a.gf+=as;a.ga+=hs;
+ if(hs>as){h.w++;a.l++;h.pts+=3;}else if(hs<as){a.w++;h.l++;a.pts+=3;}else{h.d++;a.d++;h.pts++;a.pts++;}}
+function maybeInjure(team){
+ const cand=team.squad.filter(p=>p.inXI&&fit(p));if(!cand.length)return;
+ const p=pick(cand),tired=(p.energy==null?100:p.energy)<45;
+ if(Math.random()<(tired?0.13:0.06)){p.injury=rint(2,6);p.inXI=false;
+  if(team.isUser)G.news.push(`🤕 ${p.name} ble skadet og er ute i ${p.injury} runder.`);}}
+function tickEffects(){G.teams.forEach(t=>t.squad.forEach(p=>{if(p.injury>0)p.injury--;p.form=clamp((p.form||0)+rint(-1,1),-3,3);}));}
+function recoverEnergy(days){const r=days*8;G.teams.forEach(t=>t.squad.forEach(p=>{p.energy=clamp((p.energy==null?100:p.energy)+r,0,100);}));}
+function drainEnergy(team){activeXI(team).forEach(p=>{p.energy=clamp((p.energy==null?100:p.energy)-rint(20,32),0,100);});}
+function standings(ci,div){
+ return G.teams.filter(t=>t.country===ci&&t.div===div).sort((x,y)=>
+  y.pts-x.pts||(y.gf-y.ga)-(x.gf-x.ga)||y.gf-x.gf||x.name.localeCompare(y.name));}
+
+/* ===================== SAVE/LOAD ===================== */
+function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({G,PID}));}catch(e){}}
+function hasSave(){try{return!!localStorage.getItem(SAVE_KEY);}catch(e){return false;}}
+function load(){try{const d=JSON.parse(localStorage.getItem(SAVE_KEY));if(d){G=d.G;PID=d.PID;return true;}}catch(e){}return false;}
+function wipe(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
+
+/* ===================== SETUP ===================== */
+let setupSel=null,setupCountry=0;
+function renderSetup(){
+ setupSel=null;
+ el("app").innerHTML=`
+ ${hasSave()?`<div class="panel between">
+   <div><h3 style="margin:0">Du har en lagret karriere</h3><span class="muted">Fortsett der du slapp.</span></div>
+   <div class="row"><button class="gold" onclick="continueCareer()">Fortsett karriere →</button>
+   <button class="red tiny" onclick="if(confirm('Slette lagret karriere?')){wipe();renderSetup();}">Slett</button></div></div>`:""}
+ <div class="panel"><h2>Velg klubben din</h2>
+   <p class="muted" style="margin-top:-4px">5 land, hvert med 3 divisjoner (8 lag). Ekte spillere og trenere fordeles etter klubbstyrke. Du kan rykke opp/ned og spille i europacupene.</p>
+   <div class="tabs">${COUNTRY_DEFS.map((cd,ci)=>`<button class="${setupCountry===ci?'on':''}" onclick="setSetupCountry(${ci})">${cd.flag} ${cd.name}</button>`).join("")}</div>
+   ${[0,1,2].map(d=>`<h3 style="margin-top:10px">${DIV_NAMES[d]}</h3><div class="teamlist">
+     ${previewClubs(setupCountry).filter(c=>c.div===d).map(c=>{const stars="★".repeat(clamp(Math.round((c.base-46)/9),1,5));
+       return `<div class="teamcard" id="tc${c.id}" onclick="selClub(${c.id})"><div class="between"><span class="crest">${c.crest}</span><span class="star">${stars}</span></div>
+       <div style="font-weight:700;margin-top:4px">${c.name}</div><div class="muted" style="font-size:12px">Snitt ~${c.base}</div>
+       <div class="ratebar"><i style="width:${clamp(c.base,0,99)}%"></i></div></div>`;}).join("")}</div>`).join("")}
+   <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="gold" id="startBtn" disabled onclick="startCareer()">Start karriere →</button></div></div>`;}
+window.setSetupCountry=ci=>{setupCountry=ci;renderSetup();};
+window.selClub=id=>{setupSel=id;document.querySelectorAll(".teamcard").forEach(c=>c.classList.remove("sel"));const e=el("tc"+id);if(e)e.classList.add("sel");el("startBtn").disabled=false;};
+window.startCareer=()=>{newCareer(setupSel);renderHub();};
+window.continueCareer=()=>{if(load())renderHub();else renderSetup();};
+
+/* ===================== NAV ===================== */
+function nav(a){return `<div class="nav">
+  <button class="${a==='hub'?'':'sec'}" onclick="renderHub()">🏠 Oversikt</button>
+  <button class="${a==='squad'?'':'sec'}" onclick="renderSquad()">👥 Tropp</button>
+  <button class="${a==='trans'?'':'sec'}" onclick="renderTransfers()">🔁 Overganger</button>
+  <button class="${a==='table'?'':'sec'}" onclick="renderTable()">📊 Tabell</button>
+  <button class="${a==='cup'?'':'sec'}" onclick="renderCup()">🏆 Cup</button>
+  <button class="${a==='euro'?'':'sec'}" onclick="renderEuropa()">🌐 Europa</button>
+  <button class="${a==='land'?'':'sec'}" onclick="renderLandslag()">🌍 Landslag</button>
+  <button class="${a==='aca'?'':'sec'}" onclick="renderAcademy()">🎓 Akademi</button></div>`;}
+
+/* ===================== HUB ===================== */
+function cupStatusText(){const c=G.comps.cup;if(c.done)return c.champion===G.userTeam?"🏆 Cupmester!":"Slått ut";
+ const ties=c.rounds[c.round],alive=ties.some(ti=>ti.h===G.userTeam||ti.a===G.userTeam);
+ return alive?roundName(ties.length):"Ute av cupen";}
+function userEuroComp(){for(const k of ['cl','el','conf'])if(G.comps[k].teamIds.includes(G.userTeam))return k;return null;}
+function euroStatusText(){const k=userEuroComp();if(!k)return "Ikke kvalifisert";const c=G.comps[k];
+ if(c.done)return c.champion===G.userTeam?COMPS[k].icon+" Vinner!":COMPS[k].name+" (ute)";
+ const alive=c.rounds[c.round].some(ti=>ti.h===G.userTeam||ti.a===G.userTeam);
+ return COMPS[k].icon+" "+(alive?roundName(c.rounds[c.round].length):"ute");}
+function renderHub(){
+ save();const t=userTeam(),uc=t.country,ud=t.div;
+ el("subline").textContent=`${t.crest} ${t.name} · ${COUNTRY_DEFS[uc].flag} ${DIV_NAMES[ud]} · Sesong ${G.season}`;
+ if(G.eventIdx>=G.schedule.length)return renderSeasonEnd();
+ const st=standings(uc,ud),pos=st.findIndex(x=>x.id===t.id)+1;
+ const ev=nextEvent(),days=ev.day-G.day,nm=nextMatchInfo(ev);
+ const injured=t.squad.filter(p=>!fit(p)).length;
+ const lowE=t.squad.filter(p=>(p.energy==null?100:p.energy)<50&&p.inXI).length;
+ const upcoming=G.schedule.slice(G.eventIdx,G.eventIdx+6);
+ const news=(G.news||[]).slice(-5).reverse();
+ el("app").innerHTML=nav('hub')+`
+ <div class="panel"><div class="row">
+   <div class="stat"><div class="k">📅 Dag ${G.day}</div><div class="v gold" style="font-size:16px">${dateStr(G.day)}</div></div>
+   <div class="stat"><div class="k">${DIV_NAMES[ud]}</div><div class="v gold">${pos}. <span style="font-size:13px;color:var(--muted)">av 8</span></div></div>
+   <div class="stat"><div class="k">Budsjett</div><div class="v good">${kr(t.budget)}</div></div>
+   <div class="stat"><div class="k">Skadet</div><div class="v ${injured?'':'good'}" style="${injured?'color:var(--orange)':''}">${injured}</div></div>
+   <div class="stat"><div class="k">Slitne (XI)</div><div class="v ${lowE?'':'good'}" style="${lowE?'color:var(--orange)':''}">${lowE}</div></div>
+ </div></div>
+ <div class="panel"><div class="between"><h2 style="margin:0;border:none;padding:0">Neste: ${nm.title}</h2>
+     <button class="gold" onclick="advanceCalendar()">${days>0?`Fortsett (${days} d) →`:'Spill kamp →'}</button></div>
+   <div class="note">${nm.detail} <span class="muted">· ${dateStr(ev.day)} (dag ${ev.day})</span>
+     ${nm.userPlays?(xiValid(t)?' <span class="ok">Laget er klart.</span>':' <span class="warn">Sett laget i Tropp.</span>'):''}</div></div>
+ <div class="panel"><h3>📅 Kommende program</h3><div class="fixtures">
+   ${upcoming.map(e=>{const info=nextMatchInfo(e);return `<div class="fx"><span class="t h muted" style="flex:0 0 56px">dag ${e.day}</span><span class="t">${info.title}</span><span class="muted" style="font-size:12px">${info.userPlays?info.short:'simuleres'}</span></div>`;}).join("")}
+ </div></div>
+ <div class="panel"><div class="row">
+   <div class="stat"><div class="k">🎯 Styrets mål</div><div class="v" style="font-size:14px">${G.objective.text}</div></div>
+   <div class="stat"><div class="k">Cup</div><div class="v" style="font-size:14px">${cupStatusText()}</div></div>
+   <div class="stat"><div class="k">Europa</div><div class="v" style="font-size:13px">${euroStatusText()}</div></div>
+ </div></div>
+ ${news.length?`<div class="panel"><h2>📰 Siste nytt</h2>${news.map(n=>`<div class="note">${n}</div>`).join("")}</div>`:""}`;}
+
+/* ===================== TABLE ===================== */
+let tableCtry=null,tableDiv=null;
+function renderTable(){
+ if(tableCtry===null)tableCtry=userTeam().country;
+ if(tableDiv===null)tableDiv=userTeam().div;
+ const st=standings(tableCtry,tableDiv);
+ el("app").innerHTML=nav('table')+`
+ <div class="tabs">${COUNTRY_DEFS.map((cd,ci)=>`<button class="${tableCtry===ci?'on':''}" onclick="setTableCtry(${ci})">${cd.flag} ${cd.name}</button>`).join("")}</div>
+ <div class="tabs">${[0,1,2].map(d=>`<button class="${tableDiv===d?'on':''}" onclick="setTableDiv(${d})">${DIV_NAMES[d]}</button>`).join("")}</div>
+ <div class="panel"><h2>${COUNTRY_DEFS[tableCtry].flag} ${COUNTRY_DEFS[tableCtry].name} — ${DIV_NAMES[tableDiv]}</h2>
+ <p class="muted" style="margin-top:-6px;font-size:12px">🟢 topp 2 rykker opp · 🔴 bunn 2 rykker ned · CL/EL/Conference fra toppdivisjonene</p>
+ <div class="scroll"><table><thead><tr><th>#</th><th>Lag</th><th>Trener</th><th class="c">K</th><th class="c">S</th><th class="c">U</th><th class="c">T</th><th class="c">Mål</th><th class="c">+/-</th><th class="c">P</th></tr></thead><tbody>
+ ${st.map((t,i)=>{const gd=t.gf-t.ga,cls=(tableDiv>0&&i<2)?'promo':(tableDiv<2&&i>=6)?'releg':'';
+   return `<tr class="${t.isUser?'me':''} ${cls}"><td>${i+1}</td>
+   <td>${t.crest} ${t.name}${t.isUser?' <span class="muted">(deg)</span>':''}</td>
+   <td class="muted" style="font-size:12px">${t.manager?t.manager.name:'—'}</td>
+   <td class="c">${t.w+t.d+t.l}</td><td class="c">${t.w}</td><td class="c">${t.d}</td><td class="c">${t.l}</td>
+   <td class="c">${t.gf}:${t.ga}</td><td class="c">${gd>0?'+':''}${gd}</td><td class="c"><b>${t.pts}</b></td></tr>`;}).join("")}
+ </tbody></table></div></div>
+ <div class="panel"><h2>⚽ Toppscorere</h2>${scorerTable(tableCtry,tableDiv)}</div>`;}
+window.setTableCtry=ci=>{tableCtry=ci;renderTable();};
+window.setTableDiv=d=>{tableDiv=d;renderTable();};
+function scorerTable(ci,div){
+ const sc=G.teams.filter(t=>t.country===ci&&t.div===div).flatMap(t=>t.squad.map(p=>({p,t}))).filter(x=>x.p.goals>0).sort((a,b)=>b.p.goals-a.p.goals).slice(0,12);
+ if(!sc.length)return '<p class="muted">Ingen mål scoret ennå denne sesongen.</p>';
+ return `<div class="scroll"><table><thead><tr><th>#</th><th>Spiller</th><th class="c">Pos</th><th>Klubb</th><th class="c">Mål</th></tr></thead><tbody>
+ ${sc.map((x,i)=>`<tr class="${x.t.isUser?'me':''}"><td>${i+1}</td><td>${x.p.name}</td><td class="c">${posPill(x.p)}</td><td>${x.t.crest} ${x.t.name}</td><td class="c ovr">${x.p.goals}</td></tr>`).join("")}</tbody></table></div>`;}
+
+/* ===================== SQUAD ===================== */
+function posPill(p){return `<span class="pill ${p.pos.toLowerCase()}">${p.pos}</span>`;}
+function ageCls(a){return a<=21?'ageY':a>=31?'ageO':'';}
+function formStr(p){const f=p.form||0;if(f>0)return `<span class="formup">▲${f}</span>`;if(f<0)return `<span class="formdn">▼${-f}</span>`;return '<span class="muted">–</span>';}
+function energyStr(p){const e=p.energy==null?100:p.energy,c=e>=70?'var(--accent)':e>=45?'var(--gold)':'var(--bad)';return `<span style="color:${c};font-weight:700">${e}%</span>`;}
+function renderSquad(){
+ const t=userTeam(),f=FORMATIONS[t.formation];
+ const sel=t.squad.filter(p=>p.inXI&&fit(p)),cnt=x=>sel.filter(p=>p.pos===x).length;
+ const need={GK:1,DF:f.DF,MF:f.MF,FW:f.FW},valid=xiValid(t),order={GK:0,DF:1,MF:2,FW:3};
+ const sorted=[...t.squad].sort((a,b)=>(b.inXI-a.inXI)||order[a.pos]-order[b.pos]||eff(b)-eff(a));
+ el("app").innerHTML=nav('squad')+`
+ <div class="panel"><div class="row" style="gap:14px">
+   <div style="flex:1;min-width:150px"><label>Formasjon</label>
+     <select onchange="setTactic('formation',this.value)">${Object.keys(FORMATIONS).map(x=>`<option ${t.formation===x?'selected':''}>${x}</option>`).join("")}</select></div>
+   <div style="flex:1;min-width:150px"><label>Mentalitet</label>
+     <select onchange="setTactic('mentality',this.value)">${Object.keys(MENTALITY).map(x=>`<option ${t.mentality===x?'selected':''}>${x}</option>`).join("")}</select></div>
+   <div style="align-self:flex-end"><button class="sec" onclick="autoXI()">⚡ Auto-velg beste 11</button></div></div>
+   <div class="row" style="margin-top:12px">
+     <div class="stat"><div class="k">Startellever</div><div class="v ${valid?'good':''}" style="${valid?'':'color:var(--bad)'}">${sel.length}/11</div></div>
+     <div class="stat"><div class="k">Krav (${t.formation})</div><div class="v" style="font-size:14px">GK ${cnt('GK')}/${need.GK} · DF ${cnt('DF')}/${need.DF} · MF ${cnt('MF')}/${need.MF} · FW ${cnt('FW')}/${need.FW}</div></div>
+     <div class="stat"><div class="k">Tropp</div><div class="v">${t.squad.length} <span style="font-size:12px;color:var(--muted)">(14–25)</span></div></div></div>
+   ${valid?'<div class="note">✅ Laget er gyldig og klart for kamp.</div>':'<div class="note"><span class="warn">Velg riktig antall per posisjon</span> — skadede (🤕) kan ikke spille. Ellers velges beste 11.</div>'}
+ </div>
+ <div class="panel"><h2>Tropp</h2><div class="scroll"><table><thead><tr>
+   <th class="c">11</th><th>Spiller</th><th class="c">Pos</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">POT</th><th class="c">Form</th><th class="c">Energi</th><th class="c">Status</th><th class="c">Verdi</th><th class="c">Lønn</th><th class="c">Kontr.</th><th></th></tr></thead><tbody>
+ ${sorted.map(p=>{const injured=!fit(p);
+   return `<tr class="${p.inXI&&!injured?'me':''}">
+   <td class="c">${injured?'—':`<input type="checkbox" ${p.inXI?'checked':''} onchange="toggleXI(${p.id})">`}</td>
+   <td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ${ageCls(p.age)}">${p.age}</td>
+   <td class="c ovr">${p.rating}</td><td class="c muted">${p.potential}</td><td class="c">${formStr(p)}</td><td class="c">${energyStr(p)}</td>
+   <td class="c">${injured?`<span class="inj">🤕 ${p.injury}r</span>`:'<span class="ok">Klar</span>'}</td>
+   <td class="c">${kr(p.value)}</td><td class="c muted">${fmt(p.wage)}</td>
+   <td class="c ${p.contract<=1?'warn':''}">${p.contract} år</td>
+   <td class="c"><button class="tiny sec" onclick="renew(${p.id})">Forny</button> <button class="tiny red" onclick="sellPlayer(${p.id})">Selg</button></td></tr>`;}).join("")}
+ </tbody></table></div></div>`;}
+window.setTactic=(k,v)=>{userTeam()[k]=v;save();renderSquad();};
+window.autoXI=()=>{autoPickXI(userTeam());save();renderSquad();};
+window.toggleXI=id=>{const p=userTeam().squad.find(x=>x.id===id);if(p&&fit(p)){p.inXI=!p.inXI;save();renderSquad();}};
+window.renew=id=>{const t=userTeam(),p=t.squad.find(x=>x.id===id);
+ p.contract=rint(3,5);p.wage=Math.round(p.wage*1.12/100)*100;p.value=playerValue(p);
+ G.news.push(`📝 ${p.name} signerte ny kontrakt (${p.contract} år).`);save();renderSquad();};
+window.sellPlayer=id=>{const t=userTeam();
+ if(t.squad.length<=14){alert("Du må ha minst 14 spillere.");return;}
+ const p=t.squad.find(x=>x.id===id),offer=Math.round(p.value*rnd(.7,1.05)/1e4)*1e4;
+ if(confirm(`Bud for ${p.name} (${p.rating} OVR): ${kr(offer)}\nAksepter?`)){
+  t.squad=t.squad.filter(x=>x.id!==id);t.budget+=offer;
+  G.news.push(`💸 Solgte ${p.name} for ${kr(offer)}.`);save();renderSquad();}};
+
+/* ===================== TRANSFERS ===================== */
+let transTab="buy",trSearch="",trPos="ALL",trSort="ovr",trAfford=false;
+function renderTransfers(){
+ const t=userTeam();
+ el("app").innerHTML=nav('trans')+`
+ <div class="panel"><div class="row">
+   <div class="stat"><div class="k">Overgangsbudsjett</div><div class="v good">${kr(t.budget)}</div></div>
+   <div class="stat"><div class="k">Lønn (uke)</div><div class="v blue">${fmt(wageTotal(t))} / ${fmt(t.wageBudget)}</div></div>
+   <div class="stat"><div class="k">Tropp</div><div class="v">${t.squad.length}/25</div></div></div></div>
+ <div class="tabs">
+   <button class="${transTab==='buy'?'on':''}" onclick="setTab('buy')">🛒 Kjøp</button>
+   <button class="${transTab==='free'?'on':''}" onclick="setTab('free')">🆓 Frie agenter</button>
+   <button class="${transTab==='sell'?'on':''}" onclick="setTab('sell')">💸 Selg</button></div>
+ <div class="panel">${transControls()}<div id="transResults"></div></div>`;renderTransResults();}
+window.setTab=x=>{transTab=x;renderTransfers();};
+function transControls(){
+ const pb=(p,l)=>`<button class="tiny ${trPos===p?'':'sec'}" onclick="setTrPos('${p}')">${l}</button>`;
+ const sb=(s,l)=>`<button class="tiny ${trSort===s?'':'sec'}" onclick="setTrSort('${s}')">${l}</button>`;
+ return `<div class="row" style="margin-bottom:8px">
+   <input id="trSearch" placeholder="🔍 Søk på navn..." value="${(trSearch||'').replace(/"/g,'&quot;')}" oninput="setTrSearch(this.value)"
+     style="flex:1;min-width:160px;background:#0c2419;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px">
+   ${transTab!=='sell'?`<label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer;font-size:13px"><input type="checkbox" ${trAfford?'checked':''} onchange="setTrAfford(this.checked)"> Kun råd til</label>`:''}</div>
+ <div class="row" style="margin-bottom:8px">${pb('ALL','Alle')}${pb('GK','GK')}${pb('DF','DF')}${pb('MF','MF')}${pb('FW','FW')}
+   ${transTab!=='sell'?`<span class="muted" style="margin-left:8px">Sorter:</span>${sb('ovr','OVR')}${sb('value','Verdi')}${sb('pot','POT')}${sb('age','Alder')}`:''}</div>`;}
+window.setTrSearch=v=>{trSearch=v;renderTransResults();};
+window.setTrPos=p=>{trPos=p;renderTransfers();};
+window.setTrSort=s=>{trSort=s;renderTransfers();};
+window.setTrAfford=v=>{trAfford=v;renderTransfers();};
+function sortList(list){const k=trSort;return list.sort((a,b)=>k==='value'?b.p.value-a.p.value:k==='pot'?b.p.potential-a.p.potential:k==='age'?a.p.age-b.p.age:b.p.rating-a.p.rating);}
+function tHead(){return `<div class="scroll"><table><thead><tr><th>Spiller</th><th class="c">Pos</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">POT</th><th>Klubb</th><th class="c">Lønn</th><th>Sum</th><th></th></tr></thead><tbody>`;}
+const tFoot="</tbody></table></div>";
+function buyRow(p,from,price,can,act){return `<tr><td>${p.name}</td><td class="c">${posPill(p)}</td>
+ <td class="c ${ageCls(p.age)}">${p.age}</td><td class="c ovr">${p.rating}</td><td class="c muted">${p.potential}</td>
+ <td class="muted">${from}</td><td class="c">${fmt(p.wage)}</td><td class="c"><b>${kr(price)}</b></td>
+ <td class="c"><button class="tiny ${can?'':'sec'}" ${can?'':'disabled'} onclick="${act}">${can?'Kjøp':'—'}</button></td></tr>`;}
+function renderTransResults(){
+ const t=userTeam(),body=el("transResults");if(!body)return;
+ const q=(trSearch||"").trim().toLowerCase();
+ const match=p=>(trPos==='ALL'||p.pos===trPos)&&(!q||p.name.toLowerCase().includes(q));
+ if(transTab==="sell"){
+  if(t.squad.length<=14){body.innerHTML='<p class="muted">For få spillere til å selge (min. 14).</p>';return;}
+  const order={GK:0,DF:1,MF:2,FW:3},list=t.squad.filter(match).sort((a,b)=>order[a.pos]-order[b.pos]||b.rating-a.rating);
+  body.innerHTML=`<h3>Selg fra egen tropp (${list.length})</h3><div class="scroll"><table><thead><tr><th>Spiller</th><th class="c">Pos</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">Verdi</th><th></th></tr></thead><tbody>
+   ${list.map(p=>`<tr><td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ${ageCls(p.age)}">${p.age}</td><td class="c ovr">${p.rating}</td><td class="c">${kr(p.value)}</td>
+     <td class="c"><button class="tiny red" onclick="sellPlayer(${p.id});renderTransfers()">Selg</button></td></tr>`).join("")}</tbody></table></div>`;return;}
+ if(transTab==="free"){
+  let list=sortList(G.freeAgents.map((p,i)=>({p,i})).filter(o=>match(o.p)));
+  if(trAfford)list=list.filter(o=>t.squad.length<25&&wageTotal(t)+o.p.wage<=t.wageBudget);
+  body.innerHTML=`<h3>Frie agenter (${list.length}) — kun lønn, ingen sum</h3>`+tHead()+
+   list.map(o=>buyRow(o.p,"Fri agent",0,t.squad.length<25&&wageTotal(t)+o.p.wage<=t.wageBudget,`signFree(${o.i})`)).join("")+tFoot+
+   (list.length?'':'<p class="muted">Ingen treff.</p>');return;}
+ let pool=[];G.teams.forEach(tm=>{if(tm.id===t.id)return;tm.squad.forEach(p=>{if(match(p))pool.push({p,tm,price:Math.round(p.value*1.3/1e4)*1e4});});});
+ pool=sortList(pool);
+ if(trAfford)pool=pool.filter(o=>t.budget>=o.price&&t.squad.length<25&&wageTotal(t)+o.p.wage<=t.wageBudget);
+ const shown=pool.slice(0,80);
+ body.innerHTML=`<h3>Til salgs (${pool.length}${pool.length>80?', viser 80':''})</h3>`+tHead()+
+  shown.map(o=>buyRow(o.p,`${o.tm.crest} ${o.tm.name}`,o.price,t.budget>=o.price&&t.squad.length<25&&wageTotal(t)+o.p.wage<=t.wageBudget,`buyPlayer(${o.tm.id},${o.p.id},${o.price})`)).join("")+tFoot+
+  (shown.length?'':'<p class="muted">Ingen treff.</p>');}
+window.buyPlayer=(fromId,pid,price)=>{
+ const t=userTeam(),from=G.teams[fromId],p=from.squad.find(x=>x.id===pid);if(!p)return;
+ if(t.budget<price||t.squad.length>=25||wageTotal(t)+p.wage>t.wageBudget){renderTransfers();return;}
+ if(!confirm(`Kjøpe ${p.name} (${p.rating} OVR) fra ${from.name} for ${kr(price)}?`))return;
+ from.squad=from.squad.filter(x=>x.id!==pid);from.budget+=price;
+ const regen=makePlayer(p.pos,clamp(p.rating-rint(2,8),40,90));regen.age=rint(18,24);regen.potential=potFor(regen.rating,regen.age);
+ regen.value=playerValue(regen);regen.wage=wageFor(regen.value);from.squad.push(regen);autoPickXI(from);
+ p.contract=rint(3,5);t.squad.push(p);t.budget-=price;
+ G.news.push(`✍️ Signerte ${p.name} fra ${from.name} for ${kr(price)}.`);autoPickXI(t);save();renderTransfers();};
+window.signFree=i=>{const t=userTeam(),p=G.freeAgents[i];if(!p)return;
+ if(t.squad.length>=25||wageTotal(t)+p.wage>t.wageBudget){renderTransfers();return;}
+ if(!confirm(`Signere ${p.name} (${p.rating} OVR) gratis?`))return;
+ p.contract=rint(2,4);t.squad.push(p);G.freeAgents.splice(i,1);
+ G.news.push(`🆓 Signerte ${p.name} på fri overgang.`);autoPickXI(t);save();renderTransfers();};
+
+/* ===================== GENERIC LIVE MATCH ===================== */
+function renderMatch(h,a,opts){
+ const sim=simulate(h,a);
+ el("app").innerHTML=`<div class="panel">
+   <div class="scoreboard"><div class="sb-team h">${h.name} ${h.crest}</div>
+     <div class="sb-score" id="sb">0 – 0</div><div class="sb-team">${a.crest} ${a.name}</div></div>
+   <div class="clock" id="clk">0'</div><div class="commentary" id="cm"></div>
+   <div class="between" style="margin-top:12px"><button class="sec" id="skip" onclick="skipMatch()">Hopp til slutt ⏭</button>
+   <span class="muted" id="ltag">${opts.tag||'● DIREKTE'}</span></div></div>`;
+ let hs=0,as=0,ei=0,minute=0,done=false;const cm=el("cm");
+ const add=(c,x)=>{const d=document.createElement("div");d.className="ev "+c;d.innerHTML=x;cm.appendChild(d);cm.scrollTop=cm.scrollHeight;};
+ add("sys",`Kampstart! ${h.name} (${h.formation}/${h.mentality}) mot ${a.name} (${a.formation}/${a.mentality}).`);
+ function push(e){if(e.type==="goal"){if(e.home)hs++;else as++;el("sb").textContent=`${hs} – ${as}`;
+   add("goal",`${e.min}'  ${e.text} <span class="muted">(${hs}–${as})</span>`);}else add("chance",`${e.min}'  ${e.text}`);}
+ function finish(){if(done)return;done=true;clearInterval(timer);
+   el("clk").textContent="Slutt!";el("ltag").textContent="● FULLTID";el("sb").textContent=`${sim.hs} – ${sim.as}`;
+   add("sys",`⏱️ Fulltid: ${h.name} ${sim.hs}–${sim.as} ${a.name}.`);
+   let winner=null;
+   if(opts.knockout&&sim.hs===sim.as){winner=decideDraw(h,a);add("big",`Uavgjort — straffer avgjør! ${winner.name} går videre.`);}
+   else add("big",sim.hs>sim.as?`${h.name} vinner!`:sim.hs<sim.as?`${a.name} vinner!`:"Uavgjort.");
+   window.__cont=()=>opts.onContinue(sim.hs,sim.as,winner);
+   el("skip").outerHTML=`<button class="gold" onclick="__cont()">Videre →</button>`;}
+ window.skipMatch=()=>{while(ei<sim.events.length)push(sim.events[ei++]);finish();};
+ const timer=setInterval(()=>{minute=Math.min(90,minute+2);el("clk").textContent=minute+"'";
+   while(ei<sim.events.length&&sim.events[ei].min<=minute)push(sim.events[ei++]);
+   if(minute>=90)finish();},190);}
+function decideDraw(h,a){const sh=strength(h).attack,sa=strength(a).attack;return Math.random()<sh/(sh+sa)?h:a;}
+
+/* ===================== KALENDER (FIFA-stil) ===================== */
+function nextEvent(){return G.eventIdx<G.schedule.length?G.schedule[G.eventIdx]:null;}
+function lastPlayedRound(c){return c.done?c.rounds[c.rounds.length-1]:c.rounds[c.round-1];}
+window.advanceCalendar=()=>{
+ const ev=nextEvent();
+ if(!ev)return renderSeasonEnd();
+ const days=ev.day-G.day;if(days>0)recoverEnergy(days);G.day=ev.day;
+ if(ev.type==='league')playLeagueEvent(ev);
+ else if(ev.type==='cup')playCupEvent();
+ else playEuroEvent();};
+function fxList(games){return `<div class="fixtures">${games.map(fx=>{const h=G.teams[fx.h],a=G.teams[fx.a],u=h.isUser||a.isUser;
+ return `<div class="fx ${u?'userfx':''}"><span class="t h">${h.name} ${h.crest}</span><span class="res">${fx.hs} – ${fx.as}</span><span class="t">${a.crest} ${a.name}</span></div>`;}).join("")}</div>`;}
+function playLeagueEvent(ev){
+ const t=userTeam();if(!xiValid(t))autoPickXI(t);const uc=t.country,ud=t.div,r=ev.round;
+ for(let ci=0;ci<COUNTRY_DEFS.length;ci++)for(let d=0;d<3;d++){
+   G.fixtures[ci][d][r].forEach(fx=>{
+     if(ci===uc&&d===ud&&(G.teams[fx.h].isUser||G.teams[fx.a].isUser))return;
+     if(!fx.played){const x=simulate(G.teams[fx.h],G.teams[fx.a]);applyResult(fx,x.hs,x.as);
+       drainEnergy(G.teams[fx.h]);drainEnergy(G.teams[fx.a]);maybeInjure(G.teams[fx.h]);maybeInjure(G.teams[fx.a]);}});}
+ const ug=G.fixtures[uc][ud][r].find(fx=>G.teams[fx.h].isUser||G.teams[fx.a].isUser);
+ const done=()=>{G.round=r+1;tickEffects();G.eventIdx++;save();renderEventSummary('league',G.fixtures[uc][ud][r]);};
+ if(ug&&!ug.played)renderMatch(G.teams[ug.h],G.teams[ug.a],{onContinue:(hs,as)=>{
+   applyResult(ug,hs,as);drainEnergy(G.teams[ug.h]);drainEnergy(G.teams[ug.a]);maybeInjure(G.teams[ug.h]);maybeInjure(G.teams[ug.a]);done();}});
+ else done();}
+function playKnockoutRound(key,onDone){
+ const comp=G.comps[key];if(comp.done){onDone();return;}
+ const ties=comp.rounds[comp.round];
+ const ut=ties.find(ti=>!ti.played&&!ti.bye&&(isUser(ti.h)||isUser(ti.a)));
+ ties.forEach(ti=>{if(ti===ut)return;if(!ti.played&&!ti.bye){
+   const r=simulate(G.teams[ti.h],G.teams[ti.a]);ti.hs=r.hs;ti.as=r.as;ti.played=true;
+   ti.winner=r.hs>r.as?ti.h:r.as>r.hs?ti.a:decideDraw(G.teams[ti.h],G.teams[ti.a]).id;ti.pens=(r.hs===r.as);
+   drainEnergy(G.teams[ti.h]);drainEnergy(G.teams[ti.a]);maybeInjure(G.teams[ti.h]);maybeInjure(G.teams[ti.a]);}});
+ if(ut)renderMatch(G.teams[ut.h],G.teams[ut.a],{knockout:true,tag:COMPS[key].icon+' '+COMPS[key].name.toUpperCase(),onContinue:(hs,as,winner)=>{
+   ut.hs=hs;ut.as=as;ut.played=true;ut.pens=(hs===as);ut.winner=winner?winner.id:(hs>as?ut.h:ut.a);
+   drainEnergy(G.teams[ut.h]);drainEnergy(G.teams[ut.a]);maybeInjure(G.teams[ut.h]);maybeInjure(G.teams[ut.a]);finalizeRound(key);onDone();}});
+ else {finalizeRound(key);onDone();}}
+function playCupEvent(){if(G.comps.cup.done){G.eventIdx++;return advanceCalendar();}
+ playKnockoutRound('cup',()=>{G.eventIdx++;save();renderEventSummary('cup');});}
+function playEuroEvent(){
+ const uk=userEuroComp();
+ ['cl','el','conf'].forEach(k=>{if(k!==uk&&!G.comps[k].done)autoOneRound(k);});
+ const fin=()=>{G.eventIdx++;save();renderEventSummary('euro');};
+ if(uk&&!G.comps[uk].done)playKnockoutRound(uk,fin);else fin();}
+function renderEventSummary(kind,games){
+ const t=userTeam();let body="";
+ if(kind==='league')body=`<h2>${COUNTRY_DEFS[t.country].flag} ${DIV_NAMES[t.div]} — runde ${G.round}</h2>${fxList(games)}`;
+ else if(kind==='cup'){const rd=lastPlayedRound(G.comps.cup);body=`<h2>🏆 Cup — ${roundName(rd.length)}</h2>${renderCompTies(rd)}`;}
+ else {body=`<h2>🌐 Europacupene</h2>`+['cl','el','conf'].map(k=>{const rd=lastPlayedRound(G.comps[k]);return rd?`<h4 style="color:var(--muted);font-size:12px;margin:8px 0 2px">${COMPS[k].icon} ${COMPS[k].name} — ${roundName(rd.length)}</h4>${renderCompTies(rd)}`:'';}).join("");}
+ const more=nextEvent();
+ el("app").innerHTML=`<div class="panel"><div class="muted" style="margin-bottom:6px">📅 Dag ${G.day} · ${dateStr(G.day)}</div>${body}
+   <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="gold" onclick="${more?'advanceCalendar()':'renderSeasonEnd()'}">${more?'Fortsett →':'Sesongavslutning →'}</button></div></div>`;}
+function nextMatchInfo(ev){
+ const t=userTeam();
+ if(ev.type==='league'){const g=G.fixtures[t.country][t.div][ev.round].find(fx=>fx.h===t.id||fx.a===t.id);
+   const opp=g.h===t.id?G.teams[g.a]:G.teams[g.h];
+   return {title:`Liga · runde ${ev.round+1}`,detail:`${t.crest} ${t.name} mot ${opp.crest} ${opp.name} (${g.h===t.id?'hjemme':'borte'})`,short:'vs '+opp.name,userPlays:true};}
+ if(ev.type==='cup'){const c=G.comps.cup;const ti=c.done?null:c.rounds[c.round].find(x=>x.h===t.id||x.a===t.id);
+   if(ti&&!ti.bye){const opp=ti.h===t.id?G.teams[ti.a]:G.teams[ti.h];return {title:`🏆 Cup · ${roundName(c.rounds[c.round].length)}`,detail:`Cupkamp mot ${opp.crest} ${opp.name}`,short:'cupkamp',userPlays:true};}
+   return {title:'🏆 Cuprunde',detail:'Cuprunden spilles (frirunde eller du er ute).',short:'cup',userPlays:false};}
+ const uk=userEuroComp();
+ if(uk&&!G.comps[uk].done){const c=G.comps[uk];const ti=c.rounds[c.round].find(x=>x.h===t.id||x.a===t.id);
+   if(ti){const opp=ti.h===t.id?G.teams[ti.a]:G.teams[ti.h];return {title:`${COMPS[uk].icon} ${COMPS[uk].name} · ${roundName(c.rounds[c.round].length)}`,detail:`Europakamp mot ${opp.crest} ${opp.name}`,short:'europa',userPlays:true};}}
+ return {title:'🌐 Europacuprunde',detail:'Europacuprundene spilles.',short:'europa',userPlays:false};}
+
+/* ===================== KNOCKOUT COMPETITIONS ===================== */
+function bracketOrder(n){let r=[1,2];while(r.length<n){const m=r.length*2+1,nx=[];for(const x of r){nx.push(x);nx.push(m-x);}r=nx;}return r;}
+function makeTie(h,a){const bye=(h===null||a===null);return {h,a,played:false,hs:0,as:0,winner:bye?(h===null?a:h):null,bye,pens:false};}
+function buildKnockout(ids){
+ const seeds=[...ids].sort((a,b)=>squadAvg(G.teams[b])-squadAvg(G.teams[a]));
+ let size=1;while(size<seeds.length)size*=2;
+ const order=bracketOrder(size).map(s=>s<=seeds.length?seeds[s-1]:null);
+ const ties=[];for(let i=0;i<size/2;i++)ties.push(makeTie(order[2*i],order[2*i+1]));return ties;}
+function buildKnockoutComp(ids){return {round:0,rounds:[buildKnockout(ids)],champion:null,done:false,teamIds:ids.slice()};}
+function qualifiedPool(){
+ const entries=[];
+ COUNTRY_DEFS.forEach((cd,ci)=>{
+  let order;
+  if(G.lastRanks&&G.lastRanks[ci])order=G.lastRanks[ci];
+  else order=G.teams.filter(t=>t.country===ci&&t.div===0).sort((a,b)=>squadAvg(b)-squadAvg(a)).map(t=>t.id);
+  order.forEach((id,rank)=>entries.push({id,rank,prestige:cd.prestige||0,str:squadAvg(G.teams[id])}));});
+ entries.sort((a,b)=>a.rank-b.rank||b.prestige-a.prestige||b.str-a.str);
+ return entries.map(e=>e.id);}
+function buildComps(){
+ const pool=qualifiedPool();
+ const ucIds=G.teams.filter(t=>t.country===G.userCountry).map(t=>t.id);
+ return {cup:buildKnockoutComp(ucIds),cl:buildKnockoutComp(pool.slice(0,8)),
+   el:buildKnockoutComp(pool.slice(8,16)),conf:buildKnockoutComp(pool.slice(16,24))};}
+const roundName=n=>n===1?"Finale":n===2?"Semifinale":n===4?"Kvartfinale":n===8?"Åttedelsfinale":"1. runde";
+function renderCompTies(ties){
+ return `<div class="fixtures" style="margin-top:8px">${ties.map(ti=>{
+  if(ti.bye){const w=G.teams[ti.winner];return `<div class="fx"><span class="t">${w.crest} ${w.name}</span><span class="res muted">frirunde</span><span class="t"></span></div>`;}
+  const h=G.teams[ti.h],a=G.teams[ti.a],u=ti.h===G.userTeam||ti.a===G.userTeam;
+  const res=ti.played?`${ti.hs}–${ti.as}${ti.pens?' s':''}`:'vs';
+  const hw=ti.winner===ti.h,aw=ti.winner===ti.a;
+  return `<div class="fx ${u?'userfx':''}"><span class="t h" style="${hw?'color:var(--gold);font-weight:700':''}">${h.name} ${h.crest}</span>
+    <span class="res">${res}</span><span class="t" style="${aw?'color:var(--gold);font-weight:700':''}">${a.crest} ${a.name}</span></div>`;}).join("")}</div>`;}
+function startKnockoutRound(key){
+ const comp=G.comps[key];if(comp.done){key==='cup'?renderCup():renderEuropa();return;}
+ const ties=comp.rounds[comp.round];
+ const ut=ties.find(ti=>!ti.played&&!ti.bye&&(isUser(ti.h)||isUser(ti.a)));
+ ties.forEach(ti=>{if(ti===ut)return;if(!ti.played&&!ti.bye){
+   const r=simulate(G.teams[ti.h],G.teams[ti.a]);ti.hs=r.hs;ti.as=r.as;ti.played=true;
+   ti.winner=r.hs>r.as?ti.h:r.as>r.hs?ti.a:decideDraw(G.teams[ti.h],G.teams[ti.a]).id;ti.pens=(r.hs===r.as);
+   maybeInjure(G.teams[ti.h]);maybeInjure(G.teams[ti.a]);}});
+ if(ut)renderMatch(G.teams[ut.h],G.teams[ut.a],{knockout:true,tag:COMPS[key].icon+' '+COMPS[key].name.toUpperCase(),onContinue:(hs,as,winner)=>{
+   ut.hs=hs;ut.as=as;ut.played=true;ut.pens=(hs===as);ut.winner=winner?winner.id:(hs>as?ut.h:ut.a);
+   maybeInjure(G.teams[ut.h]);maybeInjure(G.teams[ut.a]);advanceKnockout(key);}});
+ else advanceKnockout(key);}
+function finalizeRound(key){const comp=G.comps[key],ties=comp.rounds[comp.round],w=ties.map(ti=>ti.winner);
+ if(w.length===1){comp.champion=w[0];comp.done=true;awardComp(key);return;}
+ const nx=[];for(let i=0;i<w.length;i+=2)nx.push(makeTie(w[i],w[i+1]));comp.rounds.push(nx);comp.round++;}
+function awardComp(key){const comp=G.comps[key],champ=G.teams[comp.champion],prize=COMPS[key].prize;
+ if(comp.champion===G.userTeam){userTeam().budget+=prize;G.news.push(COMPS[key].icon+" Du vant "+(key==='cup'?userCountryName()+"-"+COMPS[key].name:COMPS[key].name)+"! +"+kr(prize)+".");}
+ else if(key!=='conf'&&key!=='el')G.news.push(COMPS[key].icon+" "+champ.name+" vant "+(key==='cup'?"cupen":COMPS[key].name)+".");}
+function advanceKnockout(key){finalizeRound(key);save();key==='cup'?renderCup():renderEuropa();}
+function autoOneRound(key){const comp=G.comps[key];if(comp.done)return;
+ comp.rounds[comp.round].forEach(ti=>{if(!ti.played&&!ti.bye){const r=simulate(G.teams[ti.h],G.teams[ti.a]);
+   ti.hs=r.hs;ti.as=r.as;ti.played=true;ti.winner=r.hs>r.as?ti.h:r.as>r.hs?ti.a:decideDraw(G.teams[ti.h],G.teams[ti.a]).id;ti.pens=(r.hs===r.as);}});
+ finalizeRound(key);}
+function autoKnockout(key){const comp=G.comps[key];while(!comp.done)autoOneRound(key);}
+
+function renderCup(){
+ const comp=G.comps.cup;if(comp.done)return renderCompResult('cup');
+ const ties=comp.rounds[comp.round],alive=ties.some(ti=>ti.h===G.userTeam||ti.a===G.userTeam);
+ el("app").innerHTML=nav('cup')+`
+ <div class="panel"><h2 style="margin:0;border:none;padding:0">🏆 ${userCountryName()}-cupen — ${roundName(ties.length)}</h2>
+   <div class="note">${alive?(ties.find(ti=>(ti.h===G.userTeam||ti.a===G.userTeam)&&ti.bye)?'Du har frirunde og går videre.':'Du er med! Cupkampene spilles via «Fortsett» på Oversikt.'):'Du er ute — kampene simuleres.'}</div>
+   ${renderCompTies(ties)}
+   ${comp.round>0?comp.rounds.slice(0,comp.round).map(rd=>`<div style="margin-top:8px"><h4 style="color:var(--muted);font-size:12px;margin:0 0 2px">${roundName(rd.length)}</h4>${renderCompTies(rd)}</div>`).join(""):""}</div>`;}
+function renderEuropa(){
+ const uk=userEuroComp();
+ let html=nav('euro')+`<div class="panel"><h2 style="margin:0;border:none;padding:0">🌐 Europacupene</h2>
+   <div class="note">Europakampene spilles via «Fortsett» på Oversikt (midtukerunder).</div></div>`;
+ ['cl','el','conf'].forEach(k=>{const c=G.comps[k];
+   const rd=c.done?c.rounds[c.rounds.length-1]:c.rounds[c.round];
+   html+=`<div class="panel"><h3>${COMPS[k].icon} ${COMPS[k].name}${c.done?` — 🏆 ${G.teams[c.champion].crest} ${G.teams[c.champion].name}`:` — ${roundName(rd.length)}`}${k===uk?' <span class="tag">DIN TURNERING</span>':''}</h3>${renderCompTies(rd)}</div>`;});
+ el("app").innerHTML=html;}
+window.startEuroRound=()=>{
+ const uk=userEuroComp();
+ ['cl','el','conf'].forEach(k=>{if(k!==uk&&!G.comps[k].done)autoOneRound(k);});
+ save();
+ if(uk&&!G.comps[uk].done)startKnockoutRound(uk);
+ else renderEuropa();};
+function renderCompResult(key){const comp=G.comps[key],champ=G.teams[comp.champion];
+ el("app").innerHTML=nav(key==='cup'?'cup':'euro')+`<div class="panel center"><div style="font-size:46px">${COMPS[key].icon}</div>
+   <div class="big-num">${champ.crest} ${champ.name}</div><div class="muted">Vinner — ${key==='cup'?userCountryName()+"-cupen":COMPS[key].name}, sesong ${G.season}${comp.champion===G.userTeam?' — gratulerer!':''}</div></div>
+   <div class="panel"><h3>Turneringens gang</h3>${comp.rounds.map(rd=>`<div style="margin-bottom:8px"><h4 style="color:var(--muted);font-size:12px;margin:0 0 2px">${roundName(rd.length)}</h4>${renderCompTies(rd)}</div>`).join("")}</div>`;}
+
+/* ===================== SEASON END ===================== */
+function renderSeasonEnd(){
+ ['cup','cl','el','conf'].forEach(k=>{if(!G.comps[k].done)autoKnockout(k);});
+ if(G.natCup&&!G.natCup.done)autoNatCup();
+ const t=userTeam(),ci=t.country,div=t.div,st=standings(ci,div);
+ const pos=st.findIndex(x=>x.id===t.id)+1,champ=st[0];
+ const met=pos<=G.objective.target,mult=div===0?1:div===1?.5:.25;
+ const prize=Math.round((PRIZE[pos-1]||0)*mult);
+ const topSc=G.teams.flatMap(tm=>tm.squad.map(p=>({p,tm}))).filter(x=>x.p.goals>0).sort((a,b)=>b.p.goals-a.p.goals)[0];
+ const champLine=k=>{const c=G.comps[k],x=G.teams[c.champion];return `${COMPS[k].icon} ${x.crest} ${x.name}`;};
+ const natCh=G.natCup?G.nations[G.natCup.champion]:null;
+ el("app").innerHTML=`
+ <div class="panel center"><div style="font-size:44px">🏅</div>
+   <div class="big-num">${champ.crest} ${champ.name}</div>
+   <div class="muted">Mester i ${COUNTRY_DEFS[ci].flag} ${DIV_NAMES[div]} — sesong ${G.season}</div></div>
+ <div class="panel center"><h2 style="border:none;display:inline-block">${t.crest} ${t.name} ble nr. ${pos}</h2>
+   <p>Styrets mål (topp ${G.objective.target}): ${met?'<span class="ok">OPPNÅDD ✅</span>':'<span class="warn">IKKE oppnådd ❌</span>'}</p>
+   <p>Premiepenger: <b style="color:var(--gold)">${kr(prize)}</b>${met?` + bonus <b style="color:var(--gold)">${kr(2e6)}</b>`:''}</p>
+   ${div>0&&pos<=2?'<p class="ok">⬆️ Klubben rykker OPP en divisjon!</p>':''}
+   ${div<2&&pos>=7?'<p class="warn">⬇️ Klubben rykker NED en divisjon.</p>':''}</div>
+ <div class="panel"><h2>Mestere denne sesongen</h2>
+   <div class="note">🏆 ${champLine('cup')} (${userCountryName()}-cupen)</div>
+   <div class="note">⭐ ${champLine('cl')} · 🥈 ${champLine('el')} · 🥉 ${champLine('conf')}</div>
+   ${natCh?`<div class="note">🌍 Internasjonal mester: ${natCh.flag} ${natCh.name}</div>`:''}
+   ${topSc?`<div class="note">⚽ Toppscorer: <b>${topSc.p.name}</b> (${topSc.tm.crest} ${topSc.tm.name}) — ${topSc.p.goals} mål</div>`:''}</div>
+ <div class="panel"><h2>Sluttabell — ${DIV_NAMES[div]}</h2><div class="scroll"><table>
+   <thead><tr><th>#</th><th>Lag</th><th class="c">S-U-T</th><th class="c">Mål</th><th class="c">P</th></tr></thead><tbody>
+   ${st.map((x,i)=>`<tr class="${x.isUser?'me':''} ${div>0&&i<2?'promo':div<2&&i>=6?'releg':''}"><td>${i+1}${i===0?' 🥇':''}</td>
+     <td>${x.crest} ${x.name}</td><td class="c">${x.w}-${x.d}-${x.l}</td><td class="c">${x.gf}:${x.ga}</td><td class="c"><b>${x.pts}</b></td></tr>`).join("")}
+ </tbody></table></div></div>
+ <div class="row" style="justify-content:center"><button class="gold" onclick="nextSeason(${pos},${prize},${met})">Til neste sesong →</button></div>`;}
+
+function developPlayers(squad){const out=[];
+ squad.forEach(p=>{p.age++;
+  if(p.age<=23&&p.rating<p.potential)p.rating=clamp(p.rating+rint(1,3),38,p.potential);
+  else if(p.age>=30)p.rating=clamp(p.rating-rint(1,3),30,99);
+  else p.rating=clamp(p.rating+rint(-1,1),38,99);
+  p.contract--;p.form=0;p.injury=0;p.goals=0;p.energy=100;p.value=playerValue(p);p.wage=wageFor(p.value);
+  if(p.age<=38)out.push(p);});
+ return out;}
+window.nextSeason=(pos,prize,met)=>{
+ const ut=userTeam(),uc=ut.country,ud=ut.div;
+ ut.budget+=Math.round(prize*0.5)+(met?2e6:0);
+ G.lastRanks={};COUNTRY_DEFS.forEach((cd,ci)=>{G.lastRanks[ci]=standings(ci,0).map(t=>t.id);});
+ const moves=[];
+ COUNTRY_DEFS.forEach((cd,ci)=>{for(let d=0;d<3;d++){const st=standings(ci,d);
+   if(d>0){moves.push([st[0].id,d-1]);moves.push([st[1].id,d-1]);}
+   if(d<2){moves.push([st[6].id,d+1]);moves.push([st[7].id,d+1]);}}});
+ moves.forEach(([id,nd])=>{G.teams[id].div=nd;});
+ if(ut.div<ud){G.news.push("⬆️ Du rykket opp til "+DIV_NAMES[ut.div]+"!");ut.budget+=6e6;}
+ else if(ut.div>ud){G.news.push("⬇️ Du rykket ned til "+DIV_NAMES[ut.div]+".");}
+ const leaving=[];
+ G.teams.forEach(tm=>{tm.squad=developPlayers(tm.squad);
+   const expired=tm.squad.filter(p=>p.contract<=0);tm.squad=tm.squad.filter(p=>p.contract>0);
+   if(tm.isUser)expired.forEach(p=>leaving.push(p.name));
+   else expired.forEach(p=>{if(Math.random()<.5){p.contract=rint(2,4);tm.squad.push(p);}});
+   while(tm.squad.length<16){const np=makePlayer(pick(["DF","MF","FW"]),clamp(tm.base-rint(0,6),40,85));tm.squad.push(np);}
+   tm.pts=tm.w=tm.d=tm.l=tm.gf=tm.ga=0;autoPickXI(tm);
+   tm.wageBudget=Math.max(tm.wageBudget,Math.round(wageTotal(tm)*1.2/1e4)*1e4);});
+ G.freeAgents=Array.from({length:14},makeFreeAgent);
+ G.season++;G.round=0;G.fixtures=buildLeagues(G.teams);
+ G.nations=buildNations();if(G.userNation!=null)G.nations[G.userNation].isUser=true;G.natCup=buildNatCup();
+ G.comps=buildComps();
+ G.day=1;G.schedule=buildSchedule();G.eventIdx=0;
+ G.academy.prospects.forEach(p=>{p.age++;if(p.rating<p.potential)p.rating=clamp(p.rating+rint(1,4),40,p.potential);p.value=playerValue(p);p.wage=wageFor(p.value);});
+ generateYouthIntake();
+ if(leaving.length)G.news.push("📤 Forlot klubben: "+leaving.join(", ")+".");
+ setObjective();tableCtry=null;tableDiv=null;save();renderHub();};
+
+/* ===================== LANDSLAG ===================== */
+function natStrength(n){const xi=bestXI(n.squad,"4-4-2");return xi.length?xi.reduce((s,p)=>s+p.rating,0)/xi.length:50;}
+function buildNations(){
+ const reals=[];G.teams.forEach(t=>t.squad.forEach(p=>{if(p.real)reals.push(p);}));
+ const byPos={GK:[],DF:[],MF:[],FW:[]};reals.forEach(p=>{if(byPos[p.pos])byPos[p.pos].push(p);});
+ Object.values(byPos).forEach(a=>a.sort((x,y)=>y.rating-x.rating));
+ const N=NATIONS.length;
+ const nations=NATIONS.map((nn,i)=>({name:nn.name,flag:nn.flag,crest:nn.flag,squad:[],formation:"4-4-2",mentality:"Balansert",isUser:false,__idx:i}));
+ for(const pos of ["GK","DF","MF","FW"]){
+  byPos[pos].forEach((p,k)=>{const row=Math.floor(k/N),col=k%N,ni=row%2===0?col:(N-1-col);
+   nations[ni].squad.push({name:p.name,pos:p.pos,rating:p.rating,form:0,injury:0,goals:0,inXI:false});});}
+ const need={GK:2,DF:5,MF:5,FW:3};
+ nations.forEach(n=>{for(const pos in need){let have=n.squad.filter(p=>p.pos===pos).length;
+   while(have<need[pos]){const base=Math.round(natStrength(n)||68),r=clamp(base-rint(2,9),55,82);
+     n.squad.push({name:pick(FIRST)+" "+pick(LAST),pos,rating:r,form:0,injury:0,goals:0,inXI:false});have++;}}});
+ return nations;}
+function buildNatCup(){
+ const seeds=G.nations.map(n=>n.__idx).sort((a,b)=>natStrength(G.nations[b])-natStrength(G.nations[a]));
+ const order=bracketOrder(8).map(s=>seeds[s-1]);
+ const ties=[];for(let i=0;i<4;i++)ties.push({h:order[2*i],a:order[2*i+1],played:false,hs:0,as:0,winner:null,pens:false});
+ return {round:0,rounds:[ties],champion:null,done:false};}
+const natRoundName=n=>n===1?"Finalen":n===2?"Semifinalen":"Kvartfinalen";
+function renderNatTies(ties){
+ return `<div class="fixtures" style="margin-top:8px">${ties.map(ti=>{
+  const h=G.nations[ti.h],a=G.nations[ti.a],u=ti.h===G.userNation||ti.a===G.userNation;
+  const res=ti.played?`${ti.hs}–${ti.as}${ti.pens?' s':''}`:'vs';
+  const hw=ti.winner===ti.h,aw=ti.winner===ti.a;
+  return `<div class="fx ${u?'userfx':''}"><span class="t h" style="${hw?'color:var(--gold);font-weight:700':''}">${h.name} ${h.flag}</span>
+    <span class="res">${res}</span><span class="t" style="${aw?'color:var(--gold);font-weight:700':''}">${a.flag} ${a.name}</span></div>`;}).join("")}</div>`;}
+function renderNationChooser(){
+ el("app").innerHTML=nav('land')+`<div class="panel"><h2>Velg landslaget du vil lede</h2>
+ <p class="muted" style="margin-top:-4px">Du leder dette laget i det internasjonale mesterskapet. Vinner du, får klubben din en prestisjebonus.</p>
+ <div class="teamlist">${G.nations.map(n=>{const s=Math.round(natStrength(n)),stars="★".repeat(clamp(Math.round((s-55)/7),1,5));
+   return `<div class="teamcard" onclick="setUserNation(${n.__idx})"><div class="between"><span class="crest">${n.flag}</span><span class="star">${stars}</span></div>
+   <div style="font-weight:700;margin-top:4px">${n.name}</div><div class="muted" style="font-size:12px">Snitt ~${s}</div><div class="ratebar"><i style="width:${s}%"></i></div></div>`;}).join("")}</div></div>`;}
+window.setUserNation=i=>{G.nations.forEach(x=>x.isUser=false);G.userNation=i;G.nations[i].isUser=true;save();renderLandslag();};
+window.setNatTactic=(k,v)=>{G.nations[G.userNation][k]=v;save();renderLandslag();};
+function renderLandslag(){
+ if(G.userNation===null||G.userNation===undefined)return renderNationChooser();
+ const c=G.natCup,n=G.nations[G.userNation];
+ if(c.done)return renderNatResult();
+ const xi=bestXI(n.squad,n.formation),ties=c.rounds[c.round];
+ const alive=ties.some(ti=>ti.h===G.userNation||ti.a===G.userNation);
+ el("app").innerHTML=nav('land')+`
+ <div class="panel"><div class="between"><h2 style="margin:0;border:none;padding:0">${n.flag} ${n.name} <span class="muted" style="font-size:13px">(ditt landslag)</span></h2>
+   <button class="sec tiny" onclick="renderNationChooser()">Bytt landslag</button></div>
+   <div class="row" style="gap:14px;margin-top:8px">
+     <div style="flex:1;min-width:150px"><label>Formasjon</label><select onchange="setNatTactic('formation',this.value)">${Object.keys(FORMATIONS).map(x=>`<option ${n.formation===x?'selected':''}>${x}</option>`).join("")}</select></div>
+     <div style="flex:1;min-width:150px"><label>Mentalitet</label><select onchange="setNatTactic('mentality',this.value)">${Object.keys(MENTALITY).map(x=>`<option ${n.mentality===x?'selected':''}>${x}</option>`).join("")}</select></div></div>
+   <div class="note">Snittrating: <b>${Math.round(natStrength(n))}</b> · Spillerne hentes fra klubbene i hele verden.</div>
+   <h3 style="margin-top:10px">Antatt startellever</h3>
+   <div class="scroll"><table><thead><tr><th>Spiller</th><th class="c">Pos</th><th class="c">OVR</th></tr></thead><tbody>
+   ${xi.map(p=>`<tr><td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ovr">${p.rating}</td></tr>`).join("")}</tbody></table></div></div>
+ <div class="panel"><div class="between"><h2 style="margin:0;border:none;padding:0">🌍 Mesterskap — ${natRoundName(ties.length)}</h2>
+   <button class="gold" onclick="startNatRound()">Spill landslagskamp →</button></div>
+   <div class="note">${alive?'Ditt landslag er med!':'Ditt landslag er slått ut — kampene simuleres.'}</div>
+   ${renderNatTies(ties)}
+   ${c.round>0?c.rounds.slice(0,c.round).map(rd=>`<div style="margin-top:8px"><h4 style="color:var(--muted);font-size:12px;margin:0 0 2px">${natRoundName(rd.length)}</h4>${renderNatTies(rd)}</div>`).join(""):""}</div>`;}
+function startNatRound(){
+ const c=G.natCup;if(c.done){renderLandslag();return;}
+ const ties=c.rounds[c.round];
+ const ut=ties.find(ti=>!ti.played&&(ti.h===G.userNation||ti.a===G.userNation));
+ ties.forEach(ti=>{if(ti===ut)return;if(!ti.played){
+   const r=simulate(G.nations[ti.h],G.nations[ti.a]);ti.hs=r.hs;ti.as=r.as;ti.played=true;
+   ti.winner=r.hs>r.as?ti.h:r.as>r.hs?ti.a:(decideDraw(G.nations[ti.h],G.nations[ti.a])===G.nations[ti.h]?ti.h:ti.a);ti.pens=(r.hs===r.as);}});
+ if(ut)renderMatch(G.nations[ut.h],G.nations[ut.a],{knockout:true,tag:'🌍 LANDSLAG',onContinue:(hs,as,winnerObj)=>{
+   ut.hs=hs;ut.as=as;ut.played=true;ut.pens=(hs===as);
+   ut.winner=winnerObj?(winnerObj===G.nations[ut.h]?ut.h:ut.a):(hs>as?ut.h:ut.a);advanceNatRound();}});
+ else advanceNatRound();}
+function advanceNatRound(){
+ const c=G.natCup,ties=c.rounds[c.round],w=ties.map(ti=>ti.winner);
+ if(w.length===1){c.champion=w[0];c.done=true;
+   if(c.champion===G.userNation){userTeam().budget+=5e6;G.news.push("🌍 "+G.nations[c.champion].name+" (ditt landslag) vant mesterskapet! Klubben fikk "+kr(5e6)+" i prestisjebonus.");}
+   else G.news.push("🌍 "+G.nations[c.champion].name+" vant det internasjonale mesterskapet.");
+   save();return renderNatResult();}
+ const nx=[];for(let i=0;i<w.length;i+=2)nx.push({h:w[i],a:w[i+1],played:false,hs:0,as:0,winner:null,pens:false});
+ c.rounds.push(nx);c.round++;save();renderLandslag();}
+function autoNatCup(){const c=G.natCup;
+ while(!c.done){const ties=c.rounds[c.round];
+  ties.forEach(ti=>{if(!ti.played){const r=simulate(G.nations[ti.h],G.nations[ti.a]);ti.hs=r.hs;ti.as=r.as;ti.played=true;
+   ti.winner=r.hs>r.as?ti.h:r.as>r.hs?ti.a:(decideDraw(G.nations[ti.h],G.nations[ti.a])===G.nations[ti.h]?ti.h:ti.a);ti.pens=(r.hs===r.as);}});
+  const w=ties.map(ti=>ti.winner);if(w.length===1){c.champion=w[0];c.done=true;break;}
+  const nx=[];for(let i=0;i<w.length;i+=2)nx.push({h:w[i],a:w[i+1],played:false,hs:0,as:0,winner:null,pens:false});
+  c.rounds.push(nx);c.round++;}}
+function renderNatResult(){const c=G.natCup,ch=G.nations[c.champion];
+ el("app").innerHTML=nav('land')+`<div class="panel center"><div style="font-size:46px">🌍</div>
+  <div class="big-num">${ch.flag} ${ch.name}</div><div class="muted">Internasjonal mester — sesong ${G.season}${c.champion===G.userNation?' — gratulerer!':''}</div></div>
+  <div class="panel"><h3>Mesterskapets gang</h3>${c.rounds.map(rd=>`<div style="margin-bottom:8px"><h4 style="color:var(--muted);font-size:12px;margin:0 0 2px">${natRoundName(rd.length)}</h4>${renderNatTies(rd)}</div>`).join("")}</div>`;}
+
+/* ===================== UNGDOMSAKADEMI ===================== */
+function makeYouth(level,base){
+ const pos=pick(["GK","DF","DF","MF","MF","MF","FW","FW"]),age=rint(16,18);
+ const rating=clamp(Math.round(rnd(42,52)+level*2+(base?base*0.12:0)),40,68);
+ const p={id:PID++,name:pick(FIRST)+" "+pick(LAST),pos,age,rating,
+   potential:clamp(rating+rint(12,28),rating,92),contract:rint(2,3),form:0,injury:0,goals:0,energy:100,youth:true,inXI:false};
+ p.value=playerValue(p);p.wage=wageFor(p.value);return p;}
+function generateYouthIntake(){
+ const lvl=G.academy.level,n=rint(2,4);
+ for(let i=0;i<n;i++)G.academy.prospects.push(makeYouth(lvl,userTeam().base));
+ if(G.academy.prospects.length>8)G.academy.prospects=G.academy.prospects.slice(-8);}
+function renderAcademy(){
+ const t=userTeam(),ac=G.academy,cost=ac.level*3e6,canInvest=t.budget>=cost&&ac.level<5;
+ el("app").innerHTML=nav('aca')+`
+ <div class="panel"><div class="row">
+   <div class="stat"><div class="k">Akademinivå</div><div class="v gold">${ac.level}/5 ${"★".repeat(ac.level)}</div></div>
+   <div class="stat"><div class="k">Budsjett</div><div class="v good">${kr(t.budget)}</div></div>
+   <div class="stat"><div class="k">Talenter</div><div class="v">${ac.prospects.length}</div></div>
+   <div class="stat" style="flex:2"><div class="k">Invester for bedre talenter</div>
+     <button class="${canInvest?'gold':'sec'}" ${canInvest?'':'disabled'} onclick="investAcademy()" style="margin-top:4px">${ac.level<5?'Oppgrader · '+kr(cost):'Maks nivå'}</button></div></div>
+ <div class="note">🎓 Akademiet henter inn nye talenter hver sesong. Høyere nivå gir høyere rating og potensial. Forfrem dem til A-laget når de er klare.</div></div>
+ <div class="panel"><h2>Talenter</h2>
+ ${ac.prospects.length?`<div class="scroll"><table><thead><tr><th>Talent</th><th class="c">Pos</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">POT</th><th class="c">Verdi</th><th></th></tr></thead><tbody>
+   ${ac.prospects.map(p=>`<tr><td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ageY">${p.age}</td><td class="c ovr">${p.rating}</td><td class="c" style="color:var(--gold)">${p.potential}</td><td class="c">${kr(p.value)}</td>
+     <td class="c"><button class="tiny" onclick="promoteProspect(${p.id})">Forfrem</button></td></tr>`).join("")}</tbody></table></div>`:'<p class="muted">Ingen talenter akkurat nå — kom tilbake neste sesong.</p>'}</div>`;}
+window.investAcademy=()=>{const t=userTeam(),ac=G.academy,cost=ac.level*3e6;
+ if(t.budget>=cost&&ac.level<5){t.budget-=cost;ac.level++;G.news.push("🎓 Akademiet oppgradert til nivå "+ac.level+".");save();renderAcademy();}};
+window.promoteProspect=id=>{const t=userTeam(),ac=G.academy,i=ac.prospects.findIndex(p=>p.id===id);if(i<0)return;
+ if(t.squad.length>=25){alert("Troppen er full (maks 25).");return;}
+ const p=ac.prospects.splice(i,1)[0];p.youth=false;t.squad.push(p);autoPickXI(t);
+ G.news.push("🌟 Forfremmet "+p.name+" fra akademiet til A-laget.");save();renderAcademy();};
+
+/* ===================== BOOT ===================== */
+renderSetup();
+</script>
+</body>
+</html>

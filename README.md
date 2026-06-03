@@ -11,6 +11,8 @@ europacupene og med landslaget.
 Ingen installasjon — åpne lenken på PC, mobil eller nettbrett. Fremdriften lagres automatisk
 i nettleseren din (per enhet).
 
+![Skjermbilde av Fotball Manager](screenshot.png)
+
 ## ✨ Funksjoner
 
 - **5 land** (Norge, England, Spania, Tyskland, Italia), hvert med 3 divisjoner à 8 lag og

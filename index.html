@@ -872,7 +872,7 @@ window.nextSeason=(pos,prize,met)=>{
 /* ===================== LANDSLAG ===================== */
 function natStrength(n){const xi=bestXI(n.squad,"4-4-2");return xi.length?xi.reduce((s,p)=>s+eff(p),0)/xi.length:50;}
 function natScore(p){return p.rating+(p.form||0)*3+(p.goals||0)*3;}
-function snapOf(p){return {id:p.id,name:p.name,pos:p.pos,rating:p.rating,form:p.form||0,goals:p.goals||0,injury:0,inXI:false};}
+function snapOf(p){return {id:p.id,name:p.name,pos:p.pos,rating:p.rating,age:p.age,energy:p.energy,form:p.form||0,goals:p.goals||0,injury:0,inXI:false};}
 function natPool(idx){return G.teams.flatMap(t=>t.squad).filter(p=>p.nat===idx&&fit(p)).sort((a,b)=>natScore(b)-natScore(a));}
 function applyManualNat(un){
  const byId=new Map();G.teams.forEach(t=>t.squad.forEach(p=>byId.set(p.id,p)));
@@ -898,9 +898,9 @@ function selectNationalSquads(){
  nations.forEach((nat,i)=>{
    for(const pos of ["GK","DF","MF","FW"]){
      pools[i].filter(p=>p.pos===pos).sort((a,b)=>natScore(b)-natScore(a)).slice(0,need[pos])
-       .forEach(p=>nat.squad.push({id:p.id,name:p.name,pos:p.pos,rating:p.rating,form:p.form||0,goals:p.goals||0,injury:0,inXI:false}));
+       .forEach(p=>nat.squad.push({id:p.id,name:p.name,pos:p.pos,rating:p.rating,age:p.age,energy:p.energy,form:p.form||0,goals:p.goals||0,injury:0,inXI:false}));
      let have=nat.squad.filter(p=>p.pos===pos).length;
-     while(have<mn[pos]){nat.squad.push({name:pick(FIRST)+" "+pick(LAST),pos,rating:rint(55,68),form:0,goals:0,injury:0,inXI:false});have++;}}
+     while(have<mn[pos]){nat.squad.push({name:pick(FIRST)+" "+pick(LAST),pos,rating:rint(55,68),age:rint(20,32),energy:100,form:0,goals:0,injury:0,inXI:false});have++;}}
  });
  if(G.userNation!=null&&nations[G.userNation]){nations[G.userNation].isUser=true;
    if(G.natManual)applyManualNat(nations[G.userNation]);}
@@ -947,13 +947,13 @@ function natSquadPanel(){
    <div class="stat" style="flex:0;min-width:0"><button class="sec" onclick="natAuto()">⚡ Auto</button></div></div>
  <div class="note">${G.natManual?'✏️ Manuelt uttak.':'🤖 Automatisk uttak (etter form, mål og rating).'} ${valid?'<span class="ok">Laget er klart.</span>':'<span class="warn">Velg 11 med riktige posisjoner — ellers brukes beste 11.</span>'}</div>
  <h3 style="margin-top:8px">Tropp — huk av startelleveren</h3>
- <div class="scroll"><table><thead><tr><th class="c">XI</th><th>Spiller</th><th class="c">Pos</th><th class="c">OVR</th><th class="c">Form</th><th class="c">Mål</th><th></th></tr></thead><tbody>
+ <div class="scroll"><table><thead><tr><th class="c">XI</th><th>Spiller</th><th class="c">Pos</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">Form</th><th class="c">Energi</th><th class="c">Mål</th><th></th></tr></thead><tbody>
  ${sq.map(p=>`<tr class="${p.inXI?'me':''}"><td class="c"><input type="checkbox" ${p.inXI?'checked':''} onchange="natToggleXI(${p.id})"></td>
-   <td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ovr">${p.rating}</td><td class="c">${formStr(p)}</td><td class="c">${p.goals||0}</td>
+   <td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ${ageCls(p.age)}">${p.age||'–'}</td><td class="c ovr">${p.rating}</td><td class="c">${formStr(p)}</td><td class="c">${energyStr(p)}</td><td class="c">${p.goals||0}</td>
    <td class="c"><button class="tiny red" onclick="natDrop(${p.id})">Fjern</button></td></tr>`).join("")}</tbody></table></div>
  <h3 style="margin-top:10px">Kandidater (${n.flag} ${n.name})</h3>
- <div class="scroll"><table><thead><tr><th>Spiller</th><th class="c">Pos</th><th class="c">OVR</th><th class="c">Form</th><th class="c">Mål</th><th></th></tr></thead><tbody>
- ${cands.map(p=>`<tr><td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ovr">${p.rating}</td><td class="c">${formStr(p)}</td><td class="c">${p.goals||0}</td>
+ <div class="scroll"><table><thead><tr><th>Spiller</th><th class="c">Pos</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">Form</th><th class="c">Energi</th><th class="c">Mål</th><th></th></tr></thead><tbody>
+ ${cands.map(p=>`<tr><td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ${ageCls(p.age)}">${p.age}</td><td class="c ovr">${p.rating}</td><td class="c">${formStr(p)}</td><td class="c">${energyStr(p)}</td><td class="c">${p.goals||0}</td>
    <td class="c"><button class="tiny" onclick="natAdd(${p.id})">Kall inn</button></td></tr>`).join("")}</tbody></table></div>`;}
 function renderNationChooser(){
  el("app").innerHTML=nav('land')+`<div class="panel"><h2>Velg landslaget du vil lede</h2>

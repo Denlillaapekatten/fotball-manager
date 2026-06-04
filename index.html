@@ -198,7 +198,7 @@ const NATIONS=[
  {name:"Saudi-Arabia",flag:"🇸🇦",con:"Asia"},{name:"Australia",flag:"🇦🇺",con:"Asia"},
 ];
 const CONT_CUP={"Europa":"EM","Afrika":"Afrikamesterskapet","Sør-Amerika":"Copa América","Nord-Amerika":"Gold Cup","Asia":"Asiamesterskapet"};
-const SAVE_KEY="fm_career_v8";
+const SAVE_KEY="fm_career_v9";
 
 /* ===================== HELPERS ===================== */
 const rnd=(a,b)=>a+Math.random()*(b-a);
@@ -312,7 +312,7 @@ function newCareer(teamIdx){
  G.academy={level:1,prospects:[]};generateYouthIntake();
  G.userNation=NATIONS.findIndex(n=>n.name===COUNTRY_DEFS[G.userCountry].name);if(G.userNation<0)G.userNation=0;
  G.natManual=false;G.natSquadIds=[];G.natXIids=[];
- G.nations=selectNationalSquads();G.intl=buildIntl();
+ G.nations=selectNationalSquads();G.intl=buildIntl();G.intlBreak=0;
  G.comps=buildComps();
  G.day=1;G.schedule=buildSchedule();G.eventIdx=0;
  save();
@@ -324,7 +324,7 @@ function buildSchedule(){
  for(let r=0;r<ROUNDS_PER_SEASON;r++)ev.push({day:(r+1)*7,type:'league',round:r});
  [2,5,8,11,14].forEach(w=>ev.push({day:w*7-3,type:'cup'}));
  [4,7,10].forEach(w=>ev.push({day:w*7-3,type:'euro'}));
- [3,6,9,13].forEach(w=>ev.push({day:w*7-5,type:'natbreak'}));
+ [17,34,52,73,90].forEach(d=>ev.push({day:d,type:'natbreak'}));
  ev.sort((a,b)=>a.day-b.day);
  return ev;}
 function buildLeagues(teams){const fx={};
@@ -702,7 +702,8 @@ function renderEventSummary(kind,games){
  if(kind==='league')body=`<h2>${COUNTRY_DEFS[t.country].flag} ${DIV_NAMES[t.div]} — runde ${G.round}</h2>${fxList(games)}`;
  else if(kind==='cup'){const rd=lastPlayedRound(G.comps.cup);body=`<h2>🏆 Cup — ${roundName(rd.length)}</h2>${renderCompTies(rd)}`;}
  else if(kind==='natbreak'){const I=G.intl;
-   if(I.kind==='ko'){const rd=I.done?I.rounds[I.rounds.length-1]:(I.rounds[I.round-1]||I.rounds[0]);body=`<h2>${I.icon} ${I.name} — ${roundName(rd.length)}</h2>${renderNatTies(rd)}`;}
+   if(I.cur&&I.cur.kind==='friendly'){body=`<h2>🤝 Treningskamp</h2><div class="note">${I.cur.result||'Treningskamp spilt.'}</div>`;}
+   else if(I.kind==='ko'){const rd=I.done?I.rounds[I.rounds.length-1]:(I.rounds[I.round-1]||I.rounds[0]);body=`<h2>${I.icon} ${I.name} — ${roundName(rd.length)}</h2>${renderNatTies(rd)}`;}
    else body=`<h2>${I.icon} ${I.name}</h2>${qualTableHTML(I)}`;}
  else {body=`<h2>🌐 Europacupene</h2>`+['cl','el','conf'].map(k=>{const rd=lastPlayedRound(G.comps[k]);return rd?`<h4 style="color:var(--muted);font-size:12px;margin:8px 0 2px">${COMPS[k].icon} ${COMPS[k].name} — ${roundName(rd.length)}</h4>${renderCompTies(rd)}`:'';}).join("");}
  const more=nextEvent();
@@ -718,10 +719,14 @@ function nextMatchInfo(ev){
    return {title:'🏆 Cuprunde',detail:'Cuprunden spilles (frirunde eller du er ute).',short:'cup',userPlays:false};}
  if(ev.type==='natbreak'){const I=G.intl,me=G.nations[G.userNation];
    if(!I)return {title:'🌍 Landslagspause',detail:'Landslagspause.',short:'landslag',userPlays:true};
-   if(I.kind==='ko'&&!I.done){const ut=I.rounds[I.round].find(x=>!x.bye&&(x.h===G.userNation||x.a===G.userNation));
-     if(ut){const opp=ut.h===G.userNation?G.nations[ut.a]:G.nations[ut.h];return {title:`${I.icon} ${I.name} · ${roundName(I.rounds[I.round].length)}`,detail:`${me.flag} ${me.name} mot ${opp.flag} ${opp.name}`,short:I.name,userPlays:true};}}
-   if(I.kind==='qual'&&I.md<I.fixtures.length){const opp=G.nations[I.fixtures[I.md].user[1]];return {title:`🎫 ${I.name} · kamp ${I.md+1}`,detail:`${me.flag} ${me.name} mot ${opp.flag} ${opp.name}`,short:I.name,userPlays:true};}
-   return {title:'🤝 Treningskamp',detail:'Landslaget spiller treningskamp.',short:'treningskamp',userPlays:true};}
+   const bi=(G.intlBreak||0)+G.schedule.slice(G.eventIdx).filter(e=>e.type==='natbreak'&&e.day<ev.day).length;
+   const tr=I.totalRounds||4,isComp=I.kind==='ko'?bi<tr:bi<I.fixtures.length;
+   if(!isComp)return {title:'🤝 Treningskamp',detail:'Egen landslagspause med treningskamp.',short:'treningskamp',userPlays:true};
+   if(I.kind==='qual'){const md=Math.min(bi,I.fixtures.length-1),opp=G.nations[I.fixtures[md].user[1]];return {title:`🎫 ${I.name} · kamp ${bi+1}`,detail:`${me.flag} ${me.name} mot ${opp.flag} ${opp.name}`,short:I.name,userPlays:true};}
+   if(bi===(G.intlBreak||0)&&!I.done){const ut=I.rounds[I.round].find(x=>!x.bye&&(x.h===G.userNation||x.a===G.userNation));
+     if(ut){const opp=ut.h===G.userNation?G.nations[ut.a]:G.nations[ut.h];return {title:`${I.icon} ${I.name} · ${roundName(I.rounds[I.round].length)}`,detail:`${me.flag} ${me.name} mot ${opp.flag} ${opp.name}`,short:I.name,userPlays:true};}
+     return {title:`${I.icon} ${I.name}`,detail:`${I.name} spilles — ditt lag er ute.`,short:I.name,userPlays:false};}
+   return {title:`${I.icon} ${I.name}`,detail:`${I.name}-runde.`,short:I.name,userPlays:true};}
  const uk=userEuroComp();
  if(uk&&!G.comps[uk].done){const c=G.comps[uk];const ti=c.rounds[c.round].find(x=>x.h===t.id||x.a===t.id);
    if(ti){const opp=ti.h===t.id?G.teams[ti.a]:G.teams[ti.h];return {title:`${COMPS[uk].icon} ${COMPS[uk].name} · ${roundName(c.rounds[c.round].length)}`,detail:`Europakamp mot ${opp.crest} ${opp.name}`,short:'europa',userPlays:true};}}
@@ -873,7 +878,7 @@ window.nextSeason=(pos,prize,met)=>{
  G.freeAgents=Array.from({length:14},makeFreeAgent);
  G.season++;G.round=0;G.fixtures=buildLeagues(G.teams);
  G.natManual=false;G.natSquadIds=[];G.natXIids=[];
- G.nations=selectNationalSquads();G.intl=buildIntl();
+ G.nations=selectNationalSquads();G.intl=buildIntl();G.intlBreak=0;
  G.comps=buildComps();
  G.day=1;G.schedule=buildSchedule();G.eventIdx=0;
  G.academy.prospects.forEach(p=>{p.age++;if(p.rating<p.potential)p.rating=clamp(p.rating+rint(1,4),40,p.potential);p.value=playerValue(p);p.wage=wageFor(p.value);});
@@ -929,7 +934,7 @@ function buildKOComp(key,name,icon,scope,size){
  let psize=1;while(psize<parts.length)psize*=2;
  const order=bracketOrder(psize).map(x=>x<=parts.length?parts[x-1]:null);
  const ties=[];for(let i=0;i<psize/2;i++)ties.push(makeNatTie(order[2*i],order[2*i+1]));
- return {kind:'ko',key,name,icon,scope,round:0,rounds:[ties],champion:null,done:false,cur:null};}
+ return {kind:'ko',key,name,icon,scope,round:0,rounds:[ties],champion:null,done:false,totalRounds:Math.round(Math.log2(psize)),cur:null};}
 function buildQualComp(key,name,icon,scope){
  const pool=nationsByScope(scope).filter(i=>i!==G.userNation).sort((a,b)=>natStrength(G.nations[b])-natStrength(G.nations[a]));
  const grp=[G.userNation];for(let k=0;k<4&&k<pool.length;k++)grp.push(pool[k]);
@@ -1045,8 +1050,17 @@ function computeNatFixture(I){
  return {kind:'friendly',opp:randomOppNat()};}
 function playNatBreakEvent(){
  G.nations=selectNationalSquads();
- G.intl.cur=computeNatFixture(G.intl);
- renderNatBreak();}
+ if(G.intlBreak==null)G.intlBreak=0;
+ const I=G.intl,bi=G.intlBreak;
+ const tr=I.totalRounds||(I.rounds?Math.round(Math.log2(I.rounds[0].length*2)):4);
+ const isComp=I.kind==='ko'?bi<tr:bi<I.fixtures.length;
+ if(!isComp){I.cur={kind:'friendly',opp:randomOppNat()};renderNatBreak();return;}
+ if(I.kind==='qual'){I.cur={kind:'qual',opp:I.fixtures[I.md].user[1]};renderNatBreak();return;}
+ if(!I.done){const ties=I.rounds[I.round];
+   const ut=ties.find(t=>!t.bye&&!t.played&&(t.h===G.userNation||t.a===G.userNation));
+   if(ut){I.cur={kind:'ko',opp:ut.h===G.userNation?ut.a:ut.h};renderNatBreak();return;}
+   ties.forEach(t=>{if(!t.played&&!t.bye)simNatTie(t);});finalizeKO(I);}
+ I.cur={kind:'ko-auto'};G.intlBreak++;G.eventIdx++;save();renderEventSummary('natbreak');}
 function renderNatBreak(){
  natCtx='break';
  const I=G.intl,n=G.nations[G.userNation],cur=I.cur,opp=G.nations[cur.opp];
@@ -1068,13 +1082,12 @@ function resolveNatBreak(cur,hs,as,w){
  else if(cur.kind==='qual'){const f=I.fixtures[I.md];recordQual(I,f.user[0],f.user[1],hs,as);
    if(f.other){const r=simulate(G.nations[f.other[0]],G.nations[f.other[1]]);recordQual(I,f.other[0],f.other[1],r.hs,r.as);}
    I.md++;if(I.md>=I.fixtures.length){I.done=true;finalizeQual(I);}}
- else{G.news.push('🤝 Treningskamp: '+G.nations[G.userNation].name+' '+hs+'–'+as+' '+G.nations[cur.opp].name+'.');
-   if(I.kind==='ko'&&!I.done){I.rounds[I.round].forEach(t=>{if(!t.played&&!t.bye)simNatTie(t);});finalizeKO(I);}}}
+ else{const res=G.nations[G.userNation].name+' '+hs+'–'+as+' '+G.nations[cur.opp].name;I.cur.result=res;G.news.push('🤝 Treningskamp: '+res+'.');}}
 window.startNatBreakMatch=()=>{
  const I=G.intl,cur=I.cur,me=G.nations[G.userNation],opp=G.nations[cur.opp];
  const ko=cur.kind==='ko';
  const tag=ko?I.icon+' '+I.name.toUpperCase():cur.kind==='qual'?'🎫 '+I.name.toUpperCase():'🤝 TRENINGSKAMP';
- renderMatch(me,opp,{knockout:ko,tag,onContinue:(hs,as,w)=>{resolveNatBreak(cur,hs,as,w);G.eventIdx++;save();renderEventSummary('natbreak');}});};
+ renderMatch(me,opp,{knockout:ko,tag,onContinue:(hs,as,w)=>{resolveNatBreak(cur,hs,as,w);G.intlBreak++;G.eventIdx++;save();renderEventSummary('natbreak');}});};
 
 /* ===================== UNGDOMSAKADEMI ===================== */
 function makeYouth(level,base){

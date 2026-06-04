@@ -85,7 +85,7 @@
   <h1>⚽ Fotball Manager <span style="color:var(--gold)">Karriere</span></h1>
   <p class="sub" id="subline">5 land · ekte spillere &amp; trenere · europacupene</p>
   <div id="app"></div>
-  <footer>Karrieremodus v10.0 · Landslag: hak-av-uttak, kaptein &amp; statistikk · VM/EM/AFCON/Nations League/kvalik · 35 landslag · 5 land · Europacupene</footer>
+  <footer>Karrieremodus v11.0 · Klubb- &amp; landslagsstatistikk + kaptein · VM/EM/AFCON/Nations League · 35 landslag · 5 land · Europacupene · Akademi</footer>
 </div>
 <script>
 "use strict";
@@ -199,7 +199,7 @@ const NATIONS=[
 ];
 const CONT_CUP={"Europa":"EM","Afrika":"Afrikamesterskapet","Sør-Amerika":"Copa América","Nord-Amerika":"Gold Cup","Asia":"Asiamesterskapet"};
 const NAT_NEED={GK:3,DF:8,MF:7,FW:5},NAT_SQUAD_SIZE=23;
-const SAVE_KEY="fm_career_v11";
+const SAVE_KEY="fm_career_v12";
 
 /* ===================== HELPERS ===================== */
 const rnd=(a,b)=>a+Math.random()*(b-a);
@@ -214,7 +214,7 @@ function fmt(n){n=Math.round(n);
 const kr=n=>"kr "+fmt(n);
 const isUser=id=>id===G.userTeam;
 function energyMult(p){const e=p.energy==null?100:p.energy;return e>=80?1:e>=65?.96:e>=50?.9:e>=35?.82:.72;}
-const eff=p=>clamp(Math.round((p.rating+(p.form||0))*energyMult(p)),25,99);
+const eff=p=>clamp(Math.round((p.rating+(p.form||0)+(p.captain?2:0))*energyMult(p)),25,99);
 const fit=p=>!p.injury||p.injury<=0;
 function playerValue(p){
  const rf=Math.pow(Math.max(p.rating-40,1),2.2);
@@ -258,7 +258,12 @@ function activeXI(team){
  const xi=bestXI(team.squad,team.formation),ids=new Set(xi.map(p=>p.id));
  team.squad.forEach(p=>p.inXI=ids.has(p.id));return xi;}
 function autoPickXI(team){const xi=bestXI(team.squad,team.formation),ids=new Set(xi.map(p=>p.id));
- team.squad.forEach(p=>p.inXI=ids.has(p.id));}
+ team.squad.forEach(p=>p.inXI=ids.has(p.id));ensureClubCaptain(team);}
+function ensureClubCaptain(team){
+ let cap=team.captainId&&team.squad.find(p=>p.id===team.captainId&&fit(p));
+ if(!cap){cap=team.squad.filter(fit).sort((a,b)=>b.rating-a.rating)[0]||team.squad[0];team.captainId=cap?cap.id:null;}
+ team.squad.forEach(p=>p.captain=(p.id===team.captainId));}
+window.setClubCaptain=id=>{const t=userTeam();t.captainId=(t.captainId===id?null:id);ensureClubCaptain(t);save();renderSquad();};
 const wageTotal=team=>team.squad.reduce((s,p)=>s+p.wage,0);
 const squadAvg=team=>{const x=bestXI(team.squad,"4-4-2");return x.length?Math.round(x.reduce((s,p)=>s+p.rating,0)/x.length):50;};
 
@@ -362,7 +367,7 @@ function strength(team){
  const avg=a=>a.length?a.reduce((s,p)=>s+eff(p),0)/a.length:48;
  const gk=avg(xi.filter(p=>p.pos==="GK")),df=avg(xi.filter(p=>p.pos==="DF")),
    mf=avg(xi.filter(p=>p.pos==="MF")),fw=avg(xi.filter(p=>p.pos==="FW"));
- const mb=managerBonus(team)+(xi.some(p=>p.captain)?1.5:0);
+ const mb=managerBonus(team);
  return{attack:fw*.6+mf*.4+f.atk+m.atk+mb,defense:df*.6+gk*.4+f.def+m.def+mb,risk:m.risk,xi};}
 function simulate(home,away){
  const H=strength(home),A=strength(away),events=[];let hs=0,as=0;const ha=4;
@@ -372,13 +377,15 @@ function simulate(home,away){
    const atkT=hm?home:away,defT=hm?away:home,aS=hm?H:A,dS=hm?A:H;
    const sc=pick(aS.xi.filter(p=>p.pos!=="GK"))||aS.xi[0];if(!sc)continue;
    const q=(aS.attack+eff(sc))/2+(hm?ha:0),conv=clamp(.30+(q-dS.defense)/120,.05,.62);
-   if(Math.random()<conv){if(hm)hs++;else as++;sc.goals=(sc.goals||0)+1;
+   if(Math.random()<conv){if(hm)hs++;else as++;sc.goals=(sc.goals||0)+1;sc.clubGoals=(sc.clubGoals||0)+1;
     events.push({min,type:"goal",home:hm,sid:sc.id,text:`⚽ MÅL! ${sc.name} scorer for ${atkT.name}!`});}
    else events.push({min,type:"chance",home:hm,text:"🎯 "+pick([
     `${sc.name} skyter like utenfor!`,`Stor sjanse — ${defT.name}s keeper redder!`,
     `${sc.name} alene med keeper... reddet!`,`${sc.name} treffer stolpen!`,
     `Frispark til ${atkT.name} — over mål.`])});
   }}
+ H.xi.forEach(p=>{if(p&&p.id!=null)p.apps=(p.apps||0)+1;});
+ A.xi.forEach(p=>{if(p&&p.id!=null)p.apps=(p.apps||0)+1;});
  return{hs,as,events};}
 function applyResult(fx,hs,as){
  fx.played=true;fx.hs=hs;fx.as=as;
@@ -530,16 +537,16 @@ function renderSquad(){
    ${valid?'<div class="note">✅ Laget er gyldig og klart for kamp.</div>':'<div class="note"><span class="warn">Velg riktig antall per posisjon</span> — skadede (🤕) kan ikke spille. Ellers velges beste 11.</div>'}
  </div>
  <div class="panel"><h2>Tropp</h2><div class="scroll"><table><thead><tr>
-   <th class="c">11</th><th>Spiller</th><th class="c">Pos</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">POT</th><th class="c">Form</th><th class="c">Energi</th><th class="c">Status</th><th class="c">Verdi</th><th class="c">Lønn</th><th class="c">Kontr.</th><th></th></tr></thead><tbody>
+   <th class="c">11</th><th>Spiller</th><th class="c">Pos</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">POT</th><th class="c" title="Kamper for klubben">K</th><th class="c" title="Mål for klubben">M</th><th class="c">Form</th><th class="c">Energi</th><th class="c">Status</th><th class="c">Verdi</th><th class="c">Lønn</th><th class="c">Kontr.</th><th></th></tr></thead><tbody>
  ${sorted.map(p=>{const injured=!fit(p);
    return `<tr class="${p.inXI&&!injured?'me':''}">
    <td class="c">${injured?'—':`<input type="checkbox" ${p.inXI?'checked':''} onchange="toggleXI(${p.id})">`}</td>
-   <td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ${ageCls(p.age)}">${p.age}</td>
-   <td class="c ovr">${p.rating}</td><td class="c muted">${p.potential}</td><td class="c">${formStr(p)}</td><td class="c">${energyStr(p)}</td>
+   <td>${p.captain?'<span style="color:var(--gold)">©</span> ':''}${p.name}</td><td class="c">${posPill(p)}</td><td class="c ${ageCls(p.age)}">${p.age}</td>
+   <td class="c ovr">${p.rating}</td><td class="c muted">${p.potential}</td><td class="c">${p.apps||0}</td><td class="c">${p.clubGoals||0}</td><td class="c">${formStr(p)}</td><td class="c">${energyStr(p)}</td>
    <td class="c">${injured?`<span class="inj">🤕 ${p.injury}r</span>`:'<span class="ok">Klar</span>'}</td>
    <td class="c">${kr(p.value)}</td><td class="c muted">${fmt(p.wage)}</td>
    <td class="c ${p.contract<=1?'warn':''}">${p.contract} år</td>
-   <td class="c"><button class="tiny sec" onclick="renew(${p.id})">Forny</button> <button class="tiny red" onclick="sellPlayer(${p.id})">Selg</button></td></tr>`;}).join("")}
+   <td class="c"><button class="tiny ${p.captain?'gold':'sec'}" onclick="setClubCaptain(${p.id})" title="Sett kaptein">©</button> <button class="tiny sec" onclick="renew(${p.id})">Forny</button> <button class="tiny red" onclick="sellPlayer(${p.id})">Selg</button></td></tr>`;}).join("")}
  </tbody></table></div></div>`;}
 window.setTactic=(k,v)=>{userTeam()[k]=v;save();renderSquad();};
 window.autoXI=()=>{autoPickXI(userTeam());save();renderSquad();};
@@ -903,7 +910,8 @@ function applyManualNat(un){
  (G.natSquadIds||[]).forEach(id=>{const p=byId.get(id);if(p&&fit(p)&&p.nat===G.userNation&&!used.has(id)&&sq.length<NAT_SQUAD_SIZE){used.add(id);sq.push(snapOf(p,club.get(id)));ids.push(id);}});
  G.natSquadIds=ids;un.squad=sq;
  const xiset=new Set(G.natXIids||[]);un.squad.forEach(s=>s.inXI=xiset.has(s.id));
- if(G.natCaptain!=null)un.squad.forEach(s=>{if(s.id===G.natCaptain)s.captain=true;});}
+ un.squad.forEach(s=>s.captain=(G.natCaptain!=null&&s.id===G.natCaptain));
+ if(!un.squad.some(s=>s.captain)){const cb=un.squad.slice().sort((a,b)=>b.rating-a.rating)[0];if(cb)cb.captain=true;}}
 function natSeedStrength(idx){const xi=bestXI(natPool(idx),"4-4-2");return xi.length?xi.reduce((s,p)=>s+p.rating,0)/xi.length:50;}
 function canFieldNat(n){return bestXI(n.squad,n.formation).length===11;}
 function assignNationalities(teams){
@@ -923,6 +931,7 @@ function selectNationalSquads(){
        .forEach(p=>nat.squad.push({id:p.id,name:p.name,pos:p.pos,rating:p.rating,age:p.age,energy:p.energy,form:p.form||0,goals:p.goals||0,club:club.get(p.id)||'—',injury:0,inXI:false}));
      let have=nat.squad.filter(p=>p.pos===pos).length;
      while(have<need[pos]){nat.squad.push({name:pick(FIRST)+" "+pick(LAST),pos,rating:rint(55,68),age:rint(20,32),energy:100,form:0,goals:0,club:'—',injury:0,inXI:false});have++;}}
+   const cb=nat.squad.slice().sort((a,b)=>b.rating-a.rating)[0];if(cb)cb.captain=true;
  });
  if(G.userNation!=null&&nations[G.userNation]){nations[G.userNation].isUser=true;applyManualNat(nations[G.userNation]);}
  return nations;}

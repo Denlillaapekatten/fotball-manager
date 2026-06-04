@@ -58,6 +58,7 @@
   .ev.goal{background:#3ddc8422;font-weight:700;color:var(--accent)}
   .ev.chance{color:#ffe08a}.ev.big{color:#fff}.ev.sys{color:var(--muted);font-style:italic}
   .ev.inj{color:var(--orange)}
+  .ev.card{color:#ffd24d}.ev.cardred{color:var(--bad);font-weight:700}
   @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
   .fixtures{display:grid;gap:6px}
   .fx{display:flex;align-items:center;gap:8px;background:#0c2419;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:14px}
@@ -85,7 +86,7 @@
   <h1>⚽ Fotball Manager <span style="color:var(--gold)">Karriere</span></h1>
   <p class="sub" id="subline">5 land · ekte spillere &amp; trenere · europacupene</p>
   <div id="app"></div>
-  <footer>Karrieremodus v11.0 · Klubb- &amp; landslagsstatistikk + kaptein · VM/EM/AFCON/Nations League · 35 landslag · 5 land · Europacupene · Akademi</footer>
+  <footer>Karrieremodus v12.0 · Statistikk: mål, assists, kort (klubb &amp; landslag) · kaptein · VM/EM/AFCON/Nations League · 35 landslag · 5 land</footer>
 </div>
 <script>
 "use strict";
@@ -199,7 +200,7 @@ const NATIONS=[
 ];
 const CONT_CUP={"Europa":"EM","Afrika":"Afrikamesterskapet","Sør-Amerika":"Copa América","Nord-Amerika":"Gold Cup","Asia":"Asiamesterskapet"};
 const NAT_NEED={GK:3,DF:8,MF:7,FW:5},NAT_SQUAD_SIZE=23;
-const SAVE_KEY="fm_career_v12";
+const SAVE_KEY="fm_career_v13";
 
 /* ===================== HELPERS ===================== */
 const rnd=(a,b)=>a+Math.random()*(b-a);
@@ -378,12 +379,17 @@ function simulate(home,away){
    const sc=pick(aS.xi.filter(p=>p.pos!=="GK"))||aS.xi[0];if(!sc)continue;
    const q=(aS.attack+eff(sc))/2+(hm?ha:0),conv=clamp(.30+(q-dS.defense)/120,.05,.62);
    if(Math.random()<conv){if(hm)hs++;else as++;sc.goals=(sc.goals||0)+1;sc.clubGoals=(sc.clubGoals||0)+1;
-    events.push({min,type:"goal",home:hm,sid:sc.id,text:`⚽ MÅL! ${sc.name} scorer for ${atkT.name}!`});}
+    let asst=null;if(Math.random()<0.6){const mates=aS.xi.filter(p=>p!==sc&&p.pos!=="GK");if(mates.length){asst=pick(mates);asst.clubAssists=(asst.clubAssists||0)+1;}}
+    events.push({min,type:"goal",home:hm,sid:sc.id,aid:asst?asst.id:null,text:`⚽ MÅL! ${sc.name} scorer${asst?` (assist: ${asst.name})`:''} for ${atkT.name}!`});}
    else events.push({min,type:"chance",home:hm,text:"🎯 "+pick([
     `${sc.name} skyter like utenfor!`,`Stor sjanse — ${defT.name}s keeper redder!`,
     `${sc.name} alene med keeper... reddet!`,`${sc.name} treffer stolpen!`,
     `Frispark til ${atkT.name} — over mål.`])});
-  }}
+  }
+  if(Math.random()<0.022){const ch=Math.random()<0.5,tS=ch?H:A,tT=ch?home:away,pls=tS.xi.filter(p=>p.pos!=="GK"),pl=pls.length?pick(pls):tS.xi[0];
+   if(pl){if(Math.random()<0.12){pl.clubRc=(pl.clubRc||0)+1;events.push({min,type:"card",home:ch,pid:pl.id,red:true,text:`🟥 Rødt kort! ${pl.name} (${tT.name}).`});}
+    else{pl.clubYc=(pl.clubYc||0)+1;events.push({min,type:"card",home:ch,pid:pl.id,red:false,text:`🟨 Gult kort til ${pl.name} (${tT.name}).`});}}}
+ }
  H.xi.forEach(p=>{if(p&&p.id!=null)p.apps=(p.apps||0)+1;});
  A.xi.forEach(p=>{if(p&&p.id!=null)p.apps=(p.apps||0)+1;});
  return{hs,as,events};}
@@ -537,12 +543,12 @@ function renderSquad(){
    ${valid?'<div class="note">✅ Laget er gyldig og klart for kamp.</div>':'<div class="note"><span class="warn">Velg riktig antall per posisjon</span> — skadede (🤕) kan ikke spille. Ellers velges beste 11.</div>'}
  </div>
  <div class="panel"><h2>Tropp</h2><div class="scroll"><table><thead><tr>
-   <th class="c">11</th><th>Spiller</th><th class="c">Pos</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">POT</th><th class="c" title="Kamper for klubben">K</th><th class="c" title="Mål for klubben">M</th><th class="c">Form</th><th class="c">Energi</th><th class="c">Status</th><th class="c">Verdi</th><th class="c">Lønn</th><th class="c">Kontr.</th><th></th></tr></thead><tbody>
+   <th class="c">11</th><th>Spiller</th><th class="c">Pos</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">POT</th><th class="c" title="Kamper">K</th><th class="c" title="Mål">M</th><th class="c" title="Assists">A</th><th class="c" title="Gule kort">🟨</th><th class="c" title="Røde kort">🟥</th><th class="c">Form</th><th class="c">Energi</th><th class="c">Status</th><th class="c">Verdi</th><th class="c">Lønn</th><th class="c">Kontr.</th><th></th></tr></thead><tbody>
  ${sorted.map(p=>{const injured=!fit(p);
    return `<tr class="${p.inXI&&!injured?'me':''}">
    <td class="c">${injured?'—':`<input type="checkbox" ${p.inXI?'checked':''} onchange="toggleXI(${p.id})">`}</td>
    <td>${p.captain?'<span style="color:var(--gold)">©</span> ':''}${p.name}</td><td class="c">${posPill(p)}</td><td class="c ${ageCls(p.age)}">${p.age}</td>
-   <td class="c ovr">${p.rating}</td><td class="c muted">${p.potential}</td><td class="c">${p.apps||0}</td><td class="c">${p.clubGoals||0}</td><td class="c">${formStr(p)}</td><td class="c">${energyStr(p)}</td>
+   <td class="c ovr">${p.rating}</td><td class="c muted">${p.potential}</td><td class="c">${p.apps||0}</td><td class="c">${p.clubGoals||0}</td><td class="c">${p.clubAssists||0}</td><td class="c">${p.clubYc||0}</td><td class="c">${p.clubRc||0}</td><td class="c">${formStr(p)}</td><td class="c">${energyStr(p)}</td>
    <td class="c">${injured?`<span class="inj">🤕 ${p.injury}r</span>`:'<span class="ok">Klar</span>'}</td>
    <td class="c">${kr(p.value)}</td><td class="c muted">${fmt(p.wage)}</td>
    <td class="c ${p.contract<=1?'warn':''}">${p.contract} år</td>
@@ -647,7 +653,9 @@ function renderMatch(h,a,opts){
  const add=(c,x)=>{const d=document.createElement("div");d.className="ev "+c;d.innerHTML=x;cm.appendChild(d);cm.scrollTop=cm.scrollHeight;};
  add("sys",`Kampstart! ${h.name} (${h.formation}/${h.mentality}) mot ${a.name} (${a.formation}/${a.mentality}).`);
  function push(e){if(e.type==="goal"){if(e.home)hs++;else as++;el("sb").textContent=`${hs} – ${as}`;
-   add("goal",`${e.min}'  ${e.text} <span class="muted">(${hs}–${as})</span>`);}else add("chance",`${e.min}'  ${e.text}`);}
+   add("goal",`${e.min}'  ${e.text} <span class="muted">(${hs}–${as})</span>`);}
+  else if(e.type==="card")add(e.red?"cardred":"card",`${e.min}'  ${e.text}`);
+  else add("chance",`${e.min}'  ${e.text}`);}
  function finish(){if(done)return;done=true;clearInterval(timer);
    el("clk").textContent="Slutt!";el("ltag").textContent="● FULLTID";el("sb").textContent=`${sim.hs} – ${sim.as}`;
    add("sys",`⏱️ Fulltid: ${h.name} ${sim.hs}–${sim.as} ${a.name}.`);
@@ -1004,7 +1012,9 @@ window.setNatSearch=v=>{natSearch=v;const e=el('natList');if(e)e.innerHTML=natSq
 window.setNatPos=p=>{natPos=p;rerenderNat();};
 function applyNatStats(events){const me=G.nations[G.userNation];if(!me)return;
  activeXI(me).forEach(s=>{if(s.id!=null){const p=playerById(s.id);if(p)p.caps=(p.caps||0)+1;}});
- (events||[]).forEach(e=>{if(e.type==='goal'&&e.home&&e.sid!=null){const p=playerById(e.sid);if(p)p.natGoals=(p.natGoals||0)+1;}});}
+ (events||[]).forEach(e=>{if(!e.home)return;
+   if(e.type==='goal'){if(e.sid!=null){const p=playerById(e.sid);if(p)p.natGoals=(p.natGoals||0)+1;}if(e.aid!=null){const p=playerById(e.aid);if(p)p.natAssists=(p.natAssists||0)+1;}}
+   else if(e.type==='card'&&e.pid!=null){const p=playerById(e.pid);if(p){if(e.red)p.natRc=(p.natRc||0)+1;else p.natYc=(p.natYc||0)+1;}}});}
 function natSquadList(){
  const club=clubMap(),q=(natSearch||'').trim().toLowerCase(),order={GK:0,DF:1,MF:2,FW:3};
  const selIds=G.natSquadIds||[],selSet=new Set(selIds),xiSet=new Set(G.natXIids||[]);
@@ -1015,10 +1025,10 @@ function natSquadList(){
   return `<tr class="${inSq?'me':''}"><td class="c"><input type="checkbox" ${inSq?'checked':''} onchange="natToggleSquad(${p.id})"></td>
    <td>${cap?'<span style="color:var(--gold)">©</span> ':''}${p.name}</td><td class="c">${posPill(p)}</td>
    <td class="muted" style="font-size:12px">${club.get(p.id)||'—'}</td><td class="c ${ageCls(p.age)}">${p.age}</td><td class="c ovr">${p.rating}</td>
-   <td class="c">${energyStr(p)}</td><td class="c" title="Landskamper">${p.caps||0}</td><td class="c" title="Landslagsmål">${p.natGoals||0}</td>
+   <td class="c">${energyStr(p)}</td><td class="c" title="Landskamper">${p.caps||0}</td><td class="c" title="Landslagsmål">${p.natGoals||0}</td><td class="c" title="Assists">${p.natAssists||0}</td><td class="c" title="Gule kort">${p.natYc||0}</td><td class="c" title="Røde kort">${p.natRc||0}</td>
    <td class="c">${inSq?`<input type="checkbox" ${inXI?'checked':''} onchange="natToggleXI(${p.id})">`:''}</td>
    <td class="c">${inSq?`<button class="tiny ${cap?'gold':'sec'}" onclick="natSetCaptain(${p.id})">©</button>`:''}</td></tr>`;};
- return `<div class="scroll"><table><thead><tr><th class="c">Tropp</th><th>Spiller</th><th class="c">Pos</th><th>Klubb</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">Energi</th><th class="c">Lk</th><th class="c">Lm</th><th class="c">XI</th><th class="c">Kapt.</th></tr></thead><tbody>
+ return `<div class="scroll"><table><thead><tr><th class="c">Tropp</th><th>Spiller</th><th class="c">Pos</th><th>Klubb</th><th class="c">Alder</th><th class="c">OVR</th><th class="c">Energi</th><th class="c" title="Landskamper">Lk</th><th class="c" title="Landslagsmål">Lm</th><th class="c" title="Assists">A</th><th class="c" title="Gule kort">🟨</th><th class="c" title="Røde kort">🟥</th><th class="c">XI</th><th class="c">Kapt.</th></tr></thead><tbody>
  ${[...sel,...pool].map(row).join("")}</tbody></table></div>`;}
 function natSquadPanel(){
  const n=G.nations[G.userNation],f=FORMATIONS[n.formation];

@@ -85,7 +85,7 @@
   <h1>⚽ Fotball Manager <span style="color:var(--gold)">Karriere</span></h1>
   <p class="sub" id="subline">5 land · ekte spillere &amp; trenere · europacupene</p>
   <div id="app"></div>
-  <footer>Karrieremodus v6.0 · Kalender &amp; energi · 5 land · Europacupene · Trenere · Landslag · Akademi · Ratinger er omtrentlige</footer>
+  <footer>Karrieremodus v7.0 · Landslagspauser &amp; uttak · 16 landslag · Kalender &amp; energi · 5 land · Europacupene · Trenere · Akademi · Ratinger er omtrentlige</footer>
 </div>
 <script>
 "use strict";
@@ -184,11 +184,12 @@ const PRIZE=[22e6,14e6,9e6,6e6,4e6,3e6,2.2e6,1.6e6];
 const COMPS={cup:{name:"cupen",icon:"🏆",prize:8e6},cl:{name:"Champions League",icon:"⭐",prize:30e6},
  el:{name:"Europa League",icon:"🥈",prize:14e6},conf:{name:"Conference League",icon:"🥉",prize:7e6}};
 const NATIONS=[
- {name:"Norvania",flag:"🟥"},{name:"Sølvland",flag:"⬜"},{name:"Bjørkrike",flag:"🟩"},
- {name:"Vestmark",flag:"🟦"},{name:"Østhavet",flag:"🟨"},{name:"Fjellheim",flag:"🟫"},
- {name:"Gullkyst",flag:"🟧"},{name:"Nordstrand",flag:"🟪"},
+ {name:"Norge",flag:"🇳🇴"},{name:"Sverige",flag:"🇸🇪"},{name:"Danmark",flag:"🇩🇰"},{name:"England",flag:"🏴"},
+ {name:"Frankrike",flag:"🇫🇷"},{name:"Spania",flag:"🇪🇸"},{name:"Tyskland",flag:"🇩🇪"},{name:"Italia",flag:"🇮🇹"},
+ {name:"Portugal",flag:"🇵🇹"},{name:"Nederland",flag:"🇳🇱"},{name:"Belgia",flag:"🇧🇪"},{name:"Brasil",flag:"🇧🇷"},
+ {name:"Argentina",flag:"🇦🇷"},{name:"Kroatia",flag:"🇭🇷"},{name:"Island",flag:"🇮🇸"},{name:"USA",flag:"🇺🇸"},
 ];
-const SAVE_KEY="fm_career_v6";
+const SAVE_KEY="fm_career_v7";
 
 /* ===================== HELPERS ===================== */
 const rnd=(a,b)=>a+Math.random()*(b-a);
@@ -222,11 +223,11 @@ function makePlayer(pos,baseStr){
  const age=rint(17,34),v=pos==="GK"?6:9;
  const rating=clamp(Math.round(baseStr+rnd(-v,v)),38,94);
  const p={id:PID++,name:`${pick(FIRST)} ${pick(LAST)}`,pos,age,rating,potential:potFor(rating,age),
-   contract:rint(1,4),form:0,injury:0,goals:0,energy:100,inXI:false};
+   contract:rint(1,4),form:0,injury:0,goals:0,energy:100,nat:rint(0,NATIONS.length-1),inXI:false};
  p.value=playerValue(p);p.wage=wageFor(p.value);return p;}
 function makeRealPlayer(e){
  const p={id:PID++,name:e[0],pos:e[1],rating:e[2],age:e[3],potential:potFor(e[2],e[3]),
-   contract:rint(2,4),form:0,injury:0,goals:0,energy:100,real:true,inXI:false};
+   contract:rint(2,4),form:0,injury:0,goals:0,energy:100,nat:rint(0,NATIONS.length-1),real:true,inXI:false};
  p.value=playerValue(p);p.wage=wageFor(p.value);return p;}
 function makeFreeAgent(){
  const pos=pick(["GK","DF","DF","MF","MF","FW"]);
@@ -292,6 +293,7 @@ function newCareer(teamIdx){
  const teams=generateClubs();
  teams[teamIdx].isUser=true;
  buildAllSquads(teams);
+ assignNationalities(teams);
  teams.forEach(t=>{t.budget=Math.round((t.base-44)*500000);t.wageBudget=Math.round(wageTotal(t)*1.5/1e4)*1e4;autoPickXI(t);});
  G={season:1,teams,userTeam:teamIdx,userCountry:teams[teamIdx].country,round:0,
     fixtures:buildLeagues(teams),news:[],lastRanks:null};
@@ -299,7 +301,8 @@ function newCareer(teamIdx){
  setObjective();
  G.freeAgents=Array.from({length:14},makeFreeAgent);
  G.academy={level:1,prospects:[]};generateYouthIntake();
- G.nations=buildNations();G.natCup=buildNatCup();G.userNation=null;
+ G.userNation=NATIONS.findIndex(n=>n.name===COUNTRY_DEFS[G.userCountry].name);if(G.userNation<0)G.userNation=0;
+ G.nations=selectNationalSquads();G.natCup=buildNatCup();
  G.comps=buildComps();
  G.day=1;G.schedule=buildSchedule();G.eventIdx=0;
  save();
@@ -311,6 +314,7 @@ function buildSchedule(){
  for(let r=0;r<ROUNDS_PER_SEASON;r++)ev.push({day:(r+1)*7,type:'league',round:r});
  [2,5,8,11,14].forEach(w=>ev.push({day:w*7-3,type:'cup'}));
  [4,7,10].forEach(w=>ev.push({day:w*7-3,type:'euro'}));
+ [3,6,9,13].forEach(w=>ev.push({day:w*7-5,type:'natbreak'}));
  ev.sort((a,b)=>a.day-b.day);
  return ev;}
 function buildLeagues(teams){const fx={};
@@ -648,7 +652,8 @@ window.advanceCalendar=()=>{
  const days=ev.day-G.day;if(days>0)recoverEnergy(days);G.day=ev.day;
  if(ev.type==='league')playLeagueEvent(ev);
  else if(ev.type==='cup')playCupEvent();
- else playEuroEvent();};
+ else if(ev.type==='euro')playEuroEvent();
+ else playNatBreakEvent();};
 function fxList(games){return `<div class="fixtures">${games.map(fx=>{const h=G.teams[fx.h],a=G.teams[fx.a],u=h.isUser||a.isUser;
  return `<div class="fx ${u?'userfx':''}"><span class="t h">${h.name} ${h.crest}</span><span class="res">${fx.hs} – ${fx.as}</span><span class="t">${a.crest} ${a.name}</span></div>`;}).join("")}</div>`;}
 function playLeagueEvent(ev){
@@ -686,6 +691,7 @@ function renderEventSummary(kind,games){
  const t=userTeam();let body="";
  if(kind==='league')body=`<h2>${COUNTRY_DEFS[t.country].flag} ${DIV_NAMES[t.div]} — runde ${G.round}</h2>${fxList(games)}`;
  else if(kind==='cup'){const rd=lastPlayedRound(G.comps.cup);body=`<h2>🏆 Cup — ${roundName(rd.length)}</h2>${renderCompTies(rd)}`;}
+ else if(kind==='natbreak'){const rd=lastPlayedRound(G.natCup);body=`<h2>🌍 Landslagspause — ${roundName(rd.length)}</h2>${renderNatTies(rd)}`;}
  else {body=`<h2>🌐 Europacupene</h2>`+['cl','el','conf'].map(k=>{const rd=lastPlayedRound(G.comps[k]);return rd?`<h4 style="color:var(--muted);font-size:12px;margin:8px 0 2px">${COMPS[k].icon} ${COMPS[k].name} — ${roundName(rd.length)}</h4>${renderCompTies(rd)}`:'';}).join("");}
  const more=nextEvent();
  el("app").innerHTML=`<div class="panel"><div class="muted" style="margin-bottom:6px">📅 Dag ${G.day} · ${dateStr(G.day)}</div>${body}
@@ -698,6 +704,11 @@ function nextMatchInfo(ev){
  if(ev.type==='cup'){const c=G.comps.cup;const ti=c.done?null:c.rounds[c.round].find(x=>x.h===t.id||x.a===t.id);
    if(ti&&!ti.bye){const opp=ti.h===t.id?G.teams[ti.a]:G.teams[ti.h];return {title:`🏆 Cup · ${roundName(c.rounds[c.round].length)}`,detail:`Cupkamp mot ${opp.crest} ${opp.name}`,short:'cupkamp',userPlays:true};}
    return {title:'🏆 Cuprunde',detail:'Cuprunden spilles (frirunde eller du er ute).',short:'cup',userPlays:false};}
+ if(ev.type==='natbreak'){const c=G.natCup;
+   if(!c||c.done)return {title:'🌍 Landslagspause',detail:'Landslagspause.',short:'landslag',userPlays:false};
+   const ti=c.rounds[c.round].find(x=>x.h===G.userNation||x.a===G.userNation);
+   if(ti){const opp=ti.h===G.userNation?G.nations[ti.a]:G.nations[ti.h];return {title:`🌍 Landslagspause · ${roundName(c.rounds[c.round].length)}`,detail:`${G.nations[G.userNation].flag} ${G.nations[G.userNation].name} mot ${opp.flag} ${opp.name}`,short:'landskamp',userPlays:true};}
+   return {title:'🌍 Landslagspause',detail:'Landskampene spilles (ditt lag er ute).',short:'landslag',userPlays:false};}
  const uk=userEuroComp();
  if(uk&&!G.comps[uk].done){const c=G.comps[uk];const ti=c.rounds[c.round].find(x=>x.h===t.id||x.a===t.id);
    if(ti){const opp=ti.h===t.id?G.teams[ti.a]:G.teams[ti.h];return {title:`${COMPS[uk].icon} ${COMPS[uk].name} · ${roundName(c.rounds[c.round].length)}`,detail:`Europakamp mot ${opp.crest} ${opp.name}`,short:'europa',userPlays:true};}}
@@ -848,7 +859,7 @@ window.nextSeason=(pos,prize,met)=>{
    tm.wageBudget=Math.max(tm.wageBudget,Math.round(wageTotal(tm)*1.2/1e4)*1e4);});
  G.freeAgents=Array.from({length:14},makeFreeAgent);
  G.season++;G.round=0;G.fixtures=buildLeagues(G.teams);
- G.nations=buildNations();if(G.userNation!=null)G.nations[G.userNation].isUser=true;G.natCup=buildNatCup();
+ G.nations=selectNationalSquads();G.natCup=buildNatCup();
  G.comps=buildComps();
  G.day=1;G.schedule=buildSchedule();G.eventIdx=0;
  G.academy.prospects.forEach(p=>{p.age++;if(p.rating<p.potential)p.rating=clamp(p.rating+rint(1,4),40,p.potential);p.value=playerValue(p);p.wage=wageFor(p.value);});
@@ -857,27 +868,33 @@ window.nextSeason=(pos,prize,met)=>{
  setObjective();tableCtry=null;tableDiv=null;save();renderHub();};
 
 /* ===================== LANDSLAG ===================== */
-function natStrength(n){const xi=bestXI(n.squad,"4-4-2");return xi.length?xi.reduce((s,p)=>s+p.rating,0)/xi.length:50;}
-function buildNations(){
- const reals=[];G.teams.forEach(t=>t.squad.forEach(p=>{if(p.real)reals.push(p);}));
- const byPos={GK:[],DF:[],MF:[],FW:[]};reals.forEach(p=>{if(byPos[p.pos])byPos[p.pos].push(p);});
- Object.values(byPos).forEach(a=>a.sort((x,y)=>y.rating-x.rating));
+function natStrength(n){const xi=bestXI(n.squad,"4-4-2");return xi.length?xi.reduce((s,p)=>s+eff(p),0)/xi.length:50;}
+function natScore(p){return p.rating+(p.form||0)*3+(p.goals||0)*3;}
+function assignNationalities(teams){
+ const N=NATIONS.length,reals=[];
+ teams.forEach(t=>t.squad.forEach(p=>{if(p.real)reals.push(p);}));
+ reals.sort((a,b)=>b.rating-a.rating);
+ reals.forEach((p,k)=>{const row=Math.floor(k/N),col=k%N;p.nat=row%2===0?col:(N-1-col);});}
+function selectNationalSquads(){
  const N=NATIONS.length;
  const nations=NATIONS.map((nn,i)=>({name:nn.name,flag:nn.flag,crest:nn.flag,squad:[],formation:"4-4-2",mentality:"Balansert",isUser:false,__idx:i}));
- for(const pos of ["GK","DF","MF","FW"]){
-  byPos[pos].forEach((p,k)=>{const row=Math.floor(k/N),col=k%N,ni=row%2===0?col:(N-1-col);
-   nations[ni].squad.push({name:p.name,pos:p.pos,rating:p.rating,form:0,injury:0,goals:0,inXI:false});});}
- const need={GK:2,DF:5,MF:5,FW:3};
- nations.forEach(n=>{for(const pos in need){let have=n.squad.filter(p=>p.pos===pos).length;
-   while(have<need[pos]){const base=Math.round(natStrength(n)||68),r=clamp(base-rint(2,9),55,82);
-     n.squad.push({name:pick(FIRST)+" "+pick(LAST),pos,rating:r,form:0,injury:0,goals:0,inXI:false});have++;}}});
+ const pools=Array.from({length:N},()=>[]);
+ G.teams.forEach(t=>t.squad.forEach(p=>{if(p.nat!=null&&p.nat>=0&&p.nat<N&&fit(p))pools[p.nat].push(p);}));
+ const need={GK:2,DF:6,MF:6,FW:4},mn={GK:1,DF:3,MF:3,FW:1};
+ nations.forEach((nat,i)=>{
+   for(const pos of ["GK","DF","MF","FW"]){
+     pools[i].filter(p=>p.pos===pos).sort((a,b)=>natScore(b)-natScore(a)).slice(0,need[pos])
+       .forEach(p=>nat.squad.push({id:p.id,name:p.name,pos:p.pos,rating:p.rating,form:p.form||0,goals:p.goals||0,injury:0,inXI:false}));
+     let have=nat.squad.filter(p=>p.pos===pos).length;
+     while(have<mn[pos]){nat.squad.push({name:pick(FIRST)+" "+pick(LAST),pos,rating:rint(55,68),form:0,goals:0,injury:0,inXI:false});have++;}}
+ });
+ if(G.userNation!=null&&nations[G.userNation])nations[G.userNation].isUser=true;
  return nations;}
 function buildNatCup(){
  const seeds=G.nations.map(n=>n.__idx).sort((a,b)=>natStrength(G.nations[b])-natStrength(G.nations[a]));
- const order=bracketOrder(8).map(s=>seeds[s-1]);
- const ties=[];for(let i=0;i<4;i++)ties.push({h:order[2*i],a:order[2*i+1],played:false,hs:0,as:0,winner:null,pens:false});
+ const size=NATIONS.length,order=bracketOrder(size).map(s=>seeds[s-1]);
+ const ties=[];for(let i=0;i<size/2;i++)ties.push({h:order[2*i],a:order[2*i+1],played:false,hs:0,as:0,winner:null,pens:false});
  return {round:0,rounds:[ties],champion:null,done:false};}
-const natRoundName=n=>n===1?"Finalen":n===2?"Semifinalen":"Kvartfinalen";
 function renderNatTies(ties){
  return `<div class="fixtures" style="margin-top:8px">${ties.map(ti=>{
   const h=G.nations[ti.h],a=G.nations[ti.a],u=ti.h===G.userNation||ti.a===G.userNation;
@@ -885,72 +902,78 @@ function renderNatTies(ties){
   const hw=ti.winner===ti.h,aw=ti.winner===ti.a;
   return `<div class="fx ${u?'userfx':''}"><span class="t h" style="${hw?'color:var(--gold);font-weight:700':''}">${h.name} ${h.flag}</span>
     <span class="res">${res}</span><span class="t" style="${aw?'color:var(--gold);font-weight:700':''}">${a.flag} ${a.name}</span></div>`;}).join("")}</div>`;}
+function uttakTable(n){
+ const order={GK:0,DF:1,MF:2,FW:3};autoPickXI(n);
+ const sq=[...n.squad].sort((a,b)=>(b.inXI-a.inXI)||order[a.pos]-order[b.pos]||natScore(b)-natScore(a));
+ return `<p class="muted" style="margin-top:-4px;font-size:12px">✓ = på laget · rangert etter form, mål og rating</p><div class="scroll"><table><thead><tr><th class="c">XI</th><th>Spiller</th><th class="c">Pos</th><th class="c">OVR</th><th class="c">Form</th><th class="c">Mål</th></tr></thead><tbody>
+ ${sq.map(p=>`<tr class="${p.inXI?'me':''}"><td class="c">${p.inXI?'✓':''}</td><td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ovr">${p.rating}</td><td class="c">${formStr(p)}</td><td class="c">${p.goals||0}</td></tr>`).join("")}</tbody></table></div>`;}
+window.setUserNation=i=>{G.nations.forEach(x=>x.isUser=false);G.userNation=i;G.nations[i].isUser=true;save();renderLandslag();};
+window.setNatTactic=(k,v)=>{G.nations[G.userNation][k]=v;save();renderLandslag();};
+window.setNatTacticBreak=(k,v)=>{G.nations[G.userNation][k]=v;save();renderNatBreak();};
 function renderNationChooser(){
  el("app").innerHTML=nav('land')+`<div class="panel"><h2>Velg landslaget du vil lede</h2>
- <p class="muted" style="margin-top:-4px">Du leder dette laget i det internasjonale mesterskapet. Vinner du, får klubben din en prestisjebonus.</p>
+ <p class="muted" style="margin-top:-4px">Landskamper spilles kun i landslagspausene (se kalenderen). Uttaket gjøres automatisk etter form, mål og rating.</p>
  <div class="teamlist">${G.nations.map(n=>{const s=Math.round(natStrength(n)),stars="★".repeat(clamp(Math.round((s-55)/7),1,5));
    return `<div class="teamcard" onclick="setUserNation(${n.__idx})"><div class="between"><span class="crest">${n.flag}</span><span class="star">${stars}</span></div>
    <div style="font-weight:700;margin-top:4px">${n.name}</div><div class="muted" style="font-size:12px">Snitt ~${s}</div><div class="ratebar"><i style="width:${s}%"></i></div></div>`;}).join("")}</div></div>`;}
-window.setUserNation=i=>{G.nations.forEach(x=>x.isUser=false);G.userNation=i;G.nations[i].isUser=true;save();renderLandslag();};
-window.setNatTactic=(k,v)=>{G.nations[G.userNation][k]=v;save();renderLandslag();};
 function renderLandslag(){
  if(G.userNation===null||G.userNation===undefined)return renderNationChooser();
  const c=G.natCup,n=G.nations[G.userNation];
- if(c.done)return renderNatResult();
- const xi=bestXI(n.squad,n.formation),ties=c.rounds[c.round];
- const alive=ties.some(ti=>ti.h===G.userNation||ti.a===G.userNation);
+ const nextBreak=G.schedule?G.schedule.slice(G.eventIdx).find(e=>e.type==='natbreak'):null;
+ const statusNote=c.done?(c.champion===G.userNation?'🏆 Dere vant mesterskapet!':'Mesterskapet er ferdig — '+G.nations[c.champion].flag+' '+G.nations[c.champion].name+' vant.')
+   :(nextBreak?`Neste landskamp i landslagspausen rundt dag ${nextBreak.day}.`:'Ingen flere landslagspauser denne sesongen.');
  el("app").innerHTML=nav('land')+`
  <div class="panel"><div class="between"><h2 style="margin:0;border:none;padding:0">${n.flag} ${n.name} <span class="muted" style="font-size:13px">(ditt landslag)</span></h2>
    <button class="sec tiny" onclick="renderNationChooser()">Bytt landslag</button></div>
    <div class="row" style="gap:14px;margin-top:8px">
      <div style="flex:1;min-width:150px"><label>Formasjon</label><select onchange="setNatTactic('formation',this.value)">${Object.keys(FORMATIONS).map(x=>`<option ${n.formation===x?'selected':''}>${x}</option>`).join("")}</select></div>
      <div style="flex:1;min-width:150px"><label>Mentalitet</label><select onchange="setNatTactic('mentality',this.value)">${Object.keys(MENTALITY).map(x=>`<option ${n.mentality===x?'selected':''}>${x}</option>`).join("")}</select></div></div>
-   <div class="note">Snittrating: <b>${Math.round(natStrength(n))}</b> · Spillerne hentes fra klubbene i hele verden.</div>
-   <h3 style="margin-top:10px">Antatt startellever</h3>
-   <div class="scroll"><table><thead><tr><th>Spiller</th><th class="c">Pos</th><th class="c">OVR</th></tr></thead><tbody>
-   ${xi.map(p=>`<tr><td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ovr">${p.rating}</td></tr>`).join("")}</tbody></table></div></div>
- <div class="panel"><div class="between"><h2 style="margin:0;border:none;padding:0">🌍 Mesterskap — ${natRoundName(ties.length)}</h2>
-   <button class="gold" onclick="startNatRound()">Spill landslagskamp →</button></div>
-   <div class="note">${alive?'Ditt landslag er med!':'Ditt landslag er slått ut — kampene simuleres.'}</div>
-   ${renderNatTies(ties)}
-   ${c.round>0?c.rounds.slice(0,c.round).map(rd=>`<div style="margin-top:8px"><h4 style="color:var(--muted);font-size:12px;margin:0 0 2px">${natRoundName(rd.length)}</h4>${renderNatTies(rd)}</div>`).join(""):""}</div>`;}
-function startNatRound(){
- const c=G.natCup;if(c.done){renderLandslag();return;}
- const ties=c.rounds[c.round];
- const ut=ties.find(ti=>!ti.played&&(ti.h===G.userNation||ti.a===G.userNation));
- ties.forEach(ti=>{if(ti===ut)return;if(!ti.played){
-   const r=simulate(G.nations[ti.h],G.nations[ti.a]);ti.hs=r.hs;ti.as=r.as;ti.played=true;
-   ti.winner=r.hs>r.as?ti.h:r.as>r.hs?ti.a:(decideDraw(G.nations[ti.h],G.nations[ti.a])===G.nations[ti.h]?ti.h:ti.a);ti.pens=(r.hs===r.as);}});
- if(ut)renderMatch(G.nations[ut.h],G.nations[ut.a],{knockout:true,tag:'🌍 LANDSLAG',onContinue:(hs,as,winnerObj)=>{
-   ut.hs=hs;ut.as=as;ut.played=true;ut.pens=(hs===as);
-   ut.winner=winnerObj?(winnerObj===G.nations[ut.h]?ut.h:ut.a):(hs>as?ut.h:ut.a);advanceNatRound();}});
- else advanceNatRound();}
-function advanceNatRound(){
- const c=G.natCup,ties=c.rounds[c.round],w=ties.map(ti=>ti.winner);
+   <div class="note">Snittrating: <b>${Math.round(natStrength(n))}</b> · ${statusNote}</div></div>
+ <div class="panel"><h2>📋 Uttak (basert på prestasjoner)</h2>${uttakTable(n)}</div>
+ <div class="panel"><h2>🌍 Mesterskap</h2>${renderNatTies(c.done?c.rounds[c.rounds.length-1]:c.rounds[c.round])}
+   ${c.round>0?c.rounds.slice(0,c.round).map(rd=>`<div style="margin-top:8px"><h4 style="color:var(--muted);font-size:12px;margin:0 0 2px">${roundName(rd.length)}</h4>${renderNatTies(rd)}</div>`).join(""):""}</div>`;}
+function simNatTie(ti){const r=simulate(G.nations[ti.h],G.nations[ti.a]);ti.hs=r.hs;ti.as=r.as;ti.played=true;
+ ti.winner=r.hs>r.as?ti.h:r.as>r.hs?ti.a:(decideDraw(G.nations[ti.h],G.nations[ti.a])===G.nations[ti.h]?ti.h:ti.a);ti.pens=(r.hs===r.as);}
+function finalizeNatRound(){const c=G.natCup,w=c.rounds[c.round].map(ti=>ti.winner);
  if(w.length===1){c.champion=w[0];c.done=true;
-   if(c.champion===G.userNation){userTeam().budget+=5e6;G.news.push("🌍 "+G.nations[c.champion].name+" (ditt landslag) vant mesterskapet! Klubben fikk "+kr(5e6)+" i prestisjebonus.");}
-   else G.news.push("🌍 "+G.nations[c.champion].name+" vant det internasjonale mesterskapet.");
-   save();return renderNatResult();}
+   if(c.champion===G.userNation){userTeam().budget+=5e6;G.news.push("🌍 "+G.nations[c.champion].name+" (ditt landslag) vant mesterskapet! +"+kr(5e6)+" prestisjebonus.");}
+   else G.news.push("🌍 "+G.nations[c.champion].name+" vant det internasjonale mesterskapet.");return;}
  const nx=[];for(let i=0;i<w.length;i+=2)nx.push({h:w[i],a:w[i+1],played:false,hs:0,as:0,winner:null,pens:false});
- c.rounds.push(nx);c.round++;save();renderLandslag();}
-function autoNatCup(){const c=G.natCup;
- while(!c.done){const ties=c.rounds[c.round];
-  ties.forEach(ti=>{if(!ti.played){const r=simulate(G.nations[ti.h],G.nations[ti.a]);ti.hs=r.hs;ti.as=r.as;ti.played=true;
-   ti.winner=r.hs>r.as?ti.h:r.as>r.hs?ti.a:(decideDraw(G.nations[ti.h],G.nations[ti.a])===G.nations[ti.h]?ti.h:ti.a);ti.pens=(r.hs===r.as);}});
-  const w=ties.map(ti=>ti.winner);if(w.length===1){c.champion=w[0];c.done=true;break;}
-  const nx=[];for(let i=0;i<w.length;i+=2)nx.push({h:w[i],a:w[i+1],played:false,hs:0,as:0,winner:null,pens:false});
-  c.rounds.push(nx);c.round++;}}
-function renderNatResult(){const c=G.natCup,ch=G.nations[c.champion];
- el("app").innerHTML=nav('land')+`<div class="panel center"><div style="font-size:46px">🌍</div>
-  <div class="big-num">${ch.flag} ${ch.name}</div><div class="muted">Internasjonal mester — sesong ${G.season}${c.champion===G.userNation?' — gratulerer!':''}</div></div>
-  <div class="panel"><h3>Mesterskapets gang</h3>${c.rounds.map(rd=>`<div style="margin-bottom:8px"><h4 style="color:var(--muted);font-size:12px;margin:0 0 2px">${natRoundName(rd.length)}</h4>${renderNatTies(rd)}</div>`).join("")}</div>`;}
+ c.rounds.push(nx);c.round++;}
+function autoNatCup(){const c=G.natCup;while(!c.done){c.rounds[c.round].forEach(ti=>{if(!ti.played)simNatTie(ti);});finalizeNatRound();}}
+function playNatBreakEvent(){
+ G.nations=selectNationalSquads();const c=G.natCup;
+ if(c.done){G.eventIdx++;return advanceCalendar();}
+ const ties=c.rounds[c.round],alive=G.userNation!=null&&ties.some(ti=>ti.h===G.userNation||ti.a===G.userNation);
+ if(alive)renderNatBreak();
+ else{ties.forEach(ti=>{if(!ti.played)simNatTie(ti);});finalizeNatRound();G.eventIdx++;save();renderEventSummary('natbreak');}}
+function renderNatBreak(){
+ const c=G.natCup,n=G.nations[G.userNation],ties=c.rounds[c.round];
+ const ti=ties.find(x=>x.h===G.userNation||x.a===G.userNation),opp=ti.h===G.userNation?G.nations[ti.a]:G.nations[ti.h];
+ el("app").innerHTML=`
+ <div class="panel"><div class="muted" style="margin-bottom:6px">📅 Dag ${G.day} · ${dateStr(G.day)} · 🌍 Landslagspause</div>
+   <div class="between"><h2 style="margin:0;border:none;padding:0">${n.flag} ${n.name} — ${roundName(ties.length)}</h2>
+     <button class="gold" onclick="startNatBreakMatch()">Spill landslagskamp →</button></div>
+   <div class="note">Motstander: <b>${opp.flag} ${opp.name}</b> (snitt ${Math.round(natStrength(opp))}). Uttaket er gjort etter form, mål og rating — juster taktikk under.</div>
+   <div class="row" style="gap:14px;margin-top:4px">
+     <div style="flex:1;min-width:150px"><label>Formasjon</label><select onchange="setNatTacticBreak('formation',this.value)">${Object.keys(FORMATIONS).map(x=>`<option ${n.formation===x?'selected':''}>${x}</option>`).join("")}</select></div>
+     <div style="flex:1;min-width:150px"><label>Mentalitet</label><select onchange="setNatTacticBreak('mentality',this.value)">${Object.keys(MENTALITY).map(x=>`<option ${n.mentality===x?'selected':''}>${x}</option>`).join("")}</select></div></div></div>
+ <div class="panel"><h2>📋 Uttak (basert på prestasjoner)</h2>${uttakTable(n)}</div>`;}
+window.startNatBreakMatch=()=>{
+ const c=G.natCup,ties=c.rounds[c.round];
+ const ut=ties.find(x=>!x.played&&(x.h===G.userNation||x.a===G.userNation));
+ ties.forEach(x=>{if(x!==ut&&!x.played)simNatTie(x);});
+ if(ut)renderMatch(G.nations[ut.h],G.nations[ut.a],{knockout:true,tag:'🌍 LANDSLAG',onContinue:(hs,as,w)=>{
+   ut.hs=hs;ut.as=as;ut.played=true;ut.pens=(hs===as);ut.winner=w?(w===G.nations[ut.h]?ut.h:ut.a):(hs>as?ut.h:ut.a);
+   finalizeNatRound();G.eventIdx++;save();renderEventSummary('natbreak');}});
+ else{finalizeNatRound();G.eventIdx++;save();renderEventSummary('natbreak');}};
 
 /* ===================== UNGDOMSAKADEMI ===================== */
 function makeYouth(level,base){
  const pos=pick(["GK","DF","DF","MF","MF","MF","FW","FW"]),age=rint(16,18);
  const rating=clamp(Math.round(rnd(42,52)+level*2+(base?base*0.12:0)),40,68);
  const p={id:PID++,name:pick(FIRST)+" "+pick(LAST),pos,age,rating,
-   potential:clamp(rating+rint(12,28),rating,92),contract:rint(2,3),form:0,injury:0,goals:0,energy:100,youth:true,inXI:false};
+   potential:clamp(rating+rint(12,28),rating,92),contract:rint(2,3),form:0,injury:0,goals:0,energy:100,nat:rint(0,NATIONS.length-1),youth:true,inXI:false};
  p.value=playerValue(p);p.wage=wageFor(p.value);return p;}
 function generateYouthIntake(){
  const lvl=G.academy.level,n=rint(2,4);

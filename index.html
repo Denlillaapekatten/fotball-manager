@@ -86,7 +86,7 @@
   <h1>⚽ Fotball Manager <span style="color:var(--gold)">Karriere</span></h1>
   <p class="sub" id="subline">5 land · ekte spillere &amp; trenere · europacupene</p>
   <div id="app"></div>
-  <footer>Karrieremodus v13.0 · Rødt kort = undertall + suspensjon · statistikk (mål/assists/kort) · kaptein · VM/EM/AFCON/Nations League · 35 landslag</footer>
+  <footer>Karrieremodus v13.1 · Rødt/2 gule = undertall + suspensjon · statistikk (mål/assists/kort) · kaptein · VM/EM/AFCON/Nations League · 35 landslag</footer>
 </div>
 <script>
 "use strict";
@@ -373,7 +373,7 @@ function strength(team){
  return{attack:fw*.6+mf*.4+f.atk+m.atk+mb,defense:df*.6+gk*.4+f.def+m.def+mb,risk:m.risk,xi};}
 function simulate(home,away){
  const H=strength(home),A=strength(away),events=[];let hs=0,as=0;const ha=4;
- let hRed=0,aRed=0;const RPEN=9;
+ let hRed=0,aRed=0;const RPEN=9,yc={},sentOff=new Set();
  for(let min=1;min<=90;min++){
   const Hatk=Math.max(10,H.attack-hRed*RPEN),Aatk=Math.max(10,A.attack-aRed*RPEN),
         Hdef=H.defense-hRed*RPEN,Adef=A.defense-aRed*RPEN;
@@ -390,9 +390,13 @@ function simulate(home,away){
     `${sc.name} alene med keeper... reddet!`,`${sc.name} treffer stolpen!`,
     `Frispark til ${atkT.name} — over mål.`])});
   }
-  if(Math.random()<0.022){const ch=Math.random()<0.5,tS=ch?H:A,tT=ch?home:away,pls=tS.xi.filter(p=>p.pos!=="GK"),pl=pls.length?pick(pls):tS.xi[0];
-   if(pl){if(Math.random()<0.12){pl.clubRc=(pl.clubRc||0)+1;pl.susp=2;if(ch)hRed++;else aRed++;events.push({min,type:"card",home:ch,pid:pl.id,red:true,text:`🟥 Rødt kort! ${pl.name} (${tT.name}) — undertall!`});}
-    else{pl.clubYc=(pl.clubYc||0)+1;events.push({min,type:"card",home:ch,pid:pl.id,red:false,text:`🟨 Gult kort til ${pl.name} (${tT.name}).`});}}}
+  if(Math.random()<0.022){const ch=Math.random()<0.5,tS=ch?H:A,tT=ch?home:away;
+   const avail=tS.xi.filter(p=>p.pos!=="GK"&&!sentOff.has(p.id)),pl=avail.length?pick(avail):null;
+   if(pl){const sendOff=()=>{pl.clubRc=(pl.clubRc||0)+1;pl.susp=2;sentOff.add(pl.id);if(ch)hRed++;else aRed++;};
+    if(Math.random()<0.12){sendOff();events.push({min,type:"card",home:ch,pid:pl.id,red:true,text:`🟥 Rødt kort! ${pl.name} (${tT.name}) — undertall!`});}
+    else{pl.clubYc=(pl.clubYc||0)+1;yc[pl.id]=(yc[pl.id]||0)+1;
+     events.push({min,type:"card",home:ch,pid:pl.id,red:false,text:`🟨 Gult kort til ${pl.name} (${tT.name}).`});
+     if(yc[pl.id]>=2){sendOff();events.push({min,type:"card",home:ch,pid:pl.id,red:true,text:`🟥 Andre gule kort! ${pl.name} (${tT.name}) utvises — undertall!`});}}}}
  }
  H.xi.forEach(p=>{if(p&&p.id!=null)p.apps=(p.apps||0)+1;});
  A.xi.forEach(p=>{if(p&&p.id!=null)p.apps=(p.apps||0)+1;});

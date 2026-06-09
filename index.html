@@ -86,7 +86,7 @@
   <h1>⚽ Fotball Manager <span style="color:var(--gold)">Karriere</span></h1>
   <p class="sub" id="subline">5 land · ekte spillere &amp; trenere · europacupene</p>
   <div id="app"></div>
-  <footer>Karrieremodus v14.1 · Statistikk-fane (legender &amp; historikk) · dag-for-dag · humør · innboks · balanserte ratings · kaptein · 35 landslag</footer>
+  <footer>Karrieremodus v14.0 · Dag-for-dag · humør &amp; spillerhenvendelser · innboks for bud · balanserte ratings · statistikk · kaptein · 35 landslag</footer>
 </div>
 <script>
 "use strict";
@@ -324,7 +324,7 @@ function newCareer(teamIdx){
  G.natSquadIds=[];G.natXIids=[];G.natCaptain=null;
  G.nations=selectNationalSquads();G.intl=buildIntl();G.intlBreak=0;
  G.comps=buildComps();
- G.day=1;G.schedule=buildSchedule();G.eventIdx=0;G.inbox=[];G.history=[];
+ G.day=1;G.schedule=buildSchedule();G.eventIdx=0;G.inbox=[];
  save();
 }
 const MONTHS=["aug.","sep.","okt.","nov.","des.","jan.","feb.","mar.","apr.","mai","jun."];
@@ -459,31 +459,7 @@ function nav(a){return `<div class="nav">
   <button class="${a==='euro'?'':'sec'}" onclick="renderEuropa()">🌐 Europa</button>
   <button class="${a==='land'?'':'sec'}" onclick="renderLandslag()">🌍 Landslag</button>
   <button class="${a==='aca'?'':'sec'}" onclick="renderAcademy()">🎓 Akademi</button>
-  <button class="${a==='stats'?'':'sec'}" onclick="renderStats()">📈 Statistikk</button>
   <button class="${a==='inbox'?'':'sec'}" onclick="renderInbox()">📥 Innboks${(G.inbox&&G.inbox.length)?' ('+G.inbox.length+')':''}</button></div>`;}
-function renderStats(){
- const t=userTeam(),sortBy=(arr,f)=>arr.slice().sort((a,b)=>f(b)-f(a)),club=t.squad;
- const lst=(arr,val,label)=>`<div class="scroll"><table><thead><tr><th>#</th><th>Spiller</th><th class="c">Pos</th><th class="c">${label}</th></tr></thead><tbody>${arr.length?arr.map((p,i)=>`<tr class="${p.id===t.captainId?'me':''}"><td>${i+1}</td><td>${p.name}</td><td class="c">${posPill(p)}</td><td class="c ovr">${val(p)}</td></tr>`).join(""):'<tr><td class="muted" colspan="4">Ingen ennå</td></tr>'}</tbody></table></div>`;
- const sc=sortBy(club.filter(p=>(p.clubGoals||0)>0),p=>p.clubGoals||0).slice(0,10);
- const as=sortBy(club.filter(p=>(p.clubAssists||0)>0),p=>p.clubAssists||0).slice(0,10);
- const ap=sortBy(club.filter(p=>(p.apps||0)>0),p=>p.apps||0).slice(0,10);
- const ni=G.userNation,pool=ni!=null?natPool(ni):[];
- const caps=sortBy(pool.filter(p=>(p.caps||0)>0),p=>p.caps||0).slice(0,10);
- const natg=sortBy(pool.filter(p=>(p.natGoals||0)>0),p=>p.natGoals||0).slice(0,10);
- const hist=(G.history||[]).slice().reverse();
- el("app").innerHTML=nav('stats')+`
- <div class="panel"><h2>📈 ${t.crest} ${t.name} — klubblegender (karriere)</h2>
-   <div class="row" style="align-items:flex-start">
-   <div style="flex:1;min-width:210px"><h3>⚽ Flest mål</h3>${lst(sc,p=>p.clubGoals||0,'Mål')}</div>
-   <div style="flex:1;min-width:210px"><h3>🅰️ Flest assists</h3>${lst(as,p=>p.clubAssists||0,'Assists')}</div>
-   <div style="flex:1;min-width:210px"><h3>👕 Flest kamper</h3>${lst(ap,p=>p.apps||0,'Kamper')}</div></div></div>
- ${ni!=null?`<div class="panel"><h2>🌍 ${G.nations[ni].flag} ${G.nations[ni].name} — landslagsrekorder</h2>
-   <div class="row" style="align-items:flex-start">
-   <div style="flex:1;min-width:210px"><h3>👕 Flest landskamper</h3>${lst(caps,p=>p.caps||0,'Lk')}</div>
-   <div style="flex:1;min-width:210px"><h3>⚽ Flest landslagsmål</h3>${lst(natg,p=>p.natGoals||0,'Lm')}</div></div></div>`:''}
- <div class="panel"><h2>🏆 Sesonghistorikk</h2>
-   ${hist.length?`<div class="scroll"><table><thead><tr><th>Sesong</th><th>Seriemester</th><th>Cupmester</th><th>⭐ CL</th><th>Toppscorer</th><th class="c">Din plass</th></tr></thead><tbody>
-   ${hist.map(h=>`<tr><td>${h.season}</td><td>${h.ligaMester}</td><td>${h.cupMester}</td><td>${h.clMester}</td><td>${h.toppscorer}</td><td class="c">${h.dinPlass}.</td></tr>`).join("")}</tbody></table></div>`:'<p class="muted">Historikken fylles ut etter hver fullførte sesong.</p>'}</div>`;}
 function renderInbox(){
  const t=userTeam(),box=G.inbox||[];
  el("app").innerHTML=nav('inbox')+`<div class="panel"><h2>📥 Innboks (${box.length})</h2>
@@ -962,11 +938,6 @@ function developPlayers(squad){const out=[];
  return out;}
 window.nextSeason=(pos,prize,met)=>{
  const ut=userTeam(),uc=ut.country,ud=ut.div;
- const cn=id=>{const x=G.teams[id!=null?id:-1];return x?x.crest+' '+x.name:'—';};
- const ts=G.teams.flatMap(t=>t.squad.map(p=>({p,t}))).filter(x=>x.p.goals>0).sort((a,b)=>b.p.goals-a.p.goals)[0];
- (G.history=G.history||[]).push({season:G.season,ligaMester:cn((standings(uc,0)[0]||{}).id),
-   cupMester:cn(G.comps.cup.champion),clMester:cn(G.comps.cl.champion),
-   toppscorer:ts?ts.p.name+' ('+ts.p.goals+')':'—',dinPlass:standings(uc,ud).findIndex(t=>t.id===ut.id)+1});
  ut.budget+=Math.round(prize*0.5)+(met?2e6:0);
  G.lastRanks={};COUNTRY_DEFS.forEach((cd,ci)=>{G.lastRanks[ci]=standings(ci,0).map(t=>t.id);});
  const moves=[];

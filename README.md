@@ -11,6 +11,16 @@ europacupene og med landslaget.
 Ingen installasjon — åpne lenken på PC, mobil eller nettbrett. Fremdriften lagres automatisk
 i nettleseren din (per enhet).
 
+### Alternative lenker (hvis `github.io` er blokkert på nettverket)
+
+Samme spill, servert fra andre domener som ofte slipper gjennom skole-/jobbfiltre:
+
+- https://cdn.statically.io/gh/Denlillaapekatten/fotball-manager/main/index.html
+- https://cdn.jsdelivr.net/gh/Denlillaapekatten/fotball-manager@main/index.html
+- https://raw.githack.com/Denlillaapekatten/fotball-manager/main/index.html
+
+Er alt blokkert? Last ned `index.html` (én fil = hele spillet) og åpne den lokalt.
+
 ![Skjermbilde av Fotball Manager](screenshot.png)
 
 ## ✨ Funksjoner
